@@ -4,6 +4,7 @@ import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
 import 'package:flutter_scripter/ast/expression/boolean_node.dart';
 import 'package:flutter_scripter/ast/expression/empty_op_node.dart';
 import 'package:flutter_scripter/ast/expression/number_node.dart';
+import 'package:flutter_scripter/ast/expression/string_node.dart';
 import 'package:flutter_scripter/ast/expression/unary_op_node.dart';
 import 'package:flutter_scripter/ast/expression/var_decl_node.dart';
 import 'package:flutter_scripter/ast/expression/var_node.dart';
@@ -19,6 +20,7 @@ class Parser {
 
   var errorBuffer = StringBuffer();
   bool get isError  => errorBuffer.isNotEmpty;
+  String get errorMessage => errorBuffer.toString();
 
   Parser(this.lexer) : currentToken = lexer.getNextToken();
 
@@ -103,6 +105,9 @@ class Parser {
     } else if (token.type == TokenType.number) {
       eat(TokenType.number);
       return NumberNode(token: token);
+    } else if (token.type == TokenType.string) {
+      eat(TokenType.string);
+      return StringNode(token: token, value: token.value);
     } else if (token.type == TokenType.boolean) {
       eat(TokenType.boolean);
       return BooleanNode(token: token, value: token.value == 'true' ? true : false);

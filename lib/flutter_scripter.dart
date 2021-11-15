@@ -1,32 +1,54 @@
 library flutter_scripter;
 
-export 'ast/ast_node.dart';
-export 'ast/expression_node.dart';
-export 'ast/statement_node.dart';
-export 'ast/expression/assign_op_node.dart';
-export 'ast/expression/bin_op_node.dart';
-export 'ast/expression/boolean_node.dart';
-export 'ast/expression/empty_op_node.dart';
-export 'ast/expression/number_node.dart';
-export 'ast/expression/string_node.dart';
-export 'ast/expression/unary_op_node.dart';
-export 'ast/expression/var_decl_node.dart';
-export 'ast/expression/var_node.dart';
-export 'ast/statement/compound_node.dart';
-
-export 'exception/invalid_cast_exception.dart';
-export 'exception/invalid_operation_exception.dart';
-export 'exception/invalid_token_exception.dart';
-export 'exception/invalid_var_exception.dart';
-export 'exception/undefined_exception.dart';
-export 'exception/unsupported_exception.dart';
-
-export 'lexer/lexer.dart';
-
-export 'parser/parser.dart';
-
-export 'token/token.dart';
-export 'token/token_type.dart';
+import 'package:flutter_scripter/lexer/lexer.dart';
+import 'package:flutter_scripter/machine/machine.dart';
+import 'package:flutter_scripter/machine/value.dart';
+import 'package:flutter_scripter/parser/parser.dart';
 
 class FlutterScripter {
+  var machine = Machine();
+
+  void setVariable(String name, Value value) {
+    machine.setVariable(name, value);
+  }
+
+  Value getValue(String name) {
+    return machine.getVariable(name);
+  }
+
+  Value execute(String text) {
+    var lexer = Lexer(text: text);
+    var parser = Parser(lexer);
+    try {
+      var root = parser.parse();
+
+      if (parser.isError) {
+        print(parser.errorMessage);
+        return NullValue();
+      }
+
+      return machine.visit(root);
+    } catch (e) {
+      print(e.toString());
+      return NullValue();
+    }
+  }
+
+  Value eval(String text) {
+    var lexer = Lexer(text: text);
+    var parser = Parser(lexer);
+    try {
+      var root = parser.expr();
+
+      if (parser.isError) {
+        print(parser.errorMessage);
+        return NullValue();
+      }
+
+      return machine.visit(root);
+    } catch (e) {
+      print(e.toString());
+      return NullValue();
+    }
+  }
 }

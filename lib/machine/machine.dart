@@ -36,6 +36,24 @@ class Machine {
     }
   }
 
+  Value getVariable(String name) {
+    var top = stackFrame.top;
+    var scope = top.scope;
+
+    if (!scope.containsKey(name)) {
+      throw ArgumentError("'$name' is not variable");
+    }
+
+    return scope[name] ?? NullValue();
+  }
+
+  void setVariable(String name, Value value) {
+    var top = stackFrame.top;
+    var scope = top.scope;
+
+    scope[name] = value;
+  }
+
   Value visit(ASTNode node) {
     if (node is CompoundNode) {
       return visitCompound(node);
@@ -153,11 +171,16 @@ class Machine {
   }
 
   Value visitCompound(CompoundNode compound) {
+    Value result = NullValue();
     for (var exp in compound.children) {
-      visit(exp);
+      if (exp is EmptyOpNode) {
+        continue;
+      }
+
+      result = visit(exp);
     }
 
-    return NullValue();
+    return result;
   }
 
   Value visitEmptyOp(EmptyOpNode emptyOp) {
