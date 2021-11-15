@@ -1,7 +1,8 @@
 library flutter_scripter;
 
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
+export 'lexer/lexer.dart';
+export 'token/token.dart';
+export 'token/token_type.dart';
+
+class FlutterScripter {
 }
