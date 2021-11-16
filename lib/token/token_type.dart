@@ -7,6 +7,8 @@ enum TokenType {
   slash,
   asterisk,
 
+  exclamation,
+
   and,
   or,
 

@@ -332,6 +332,10 @@ var neq = a != b
     valueTest('lte', true);
     valueTest('eq', false);
     valueTest('neq', true);
+
+    result = scripter.eval('!eq');
+    expect(result is BooleanValue, true);
+    expect((result as BooleanValue).value, true);
   });
 }
 

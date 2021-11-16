@@ -217,17 +217,24 @@ class Machine {
   Value visitUnaryOp(UnaryOpNode unaryOp) {
     var data = visit(unaryOp.expr);
 
-    if (!data.isNumber) {
-      return NullValue();
+    if (data.isNumber) {
+      var value = (data as NumberValue).value;
+
+      switch (unaryOp.token.type) {
+        case TokenType.plus: return NumberValue(value);
+        case TokenType.minus: return NumberValue(-value);
+        default: throw InvalidOperationException(unaryOp.token);
+      }
+    } else if (data.isBoolean) {
+      var value = (data as BooleanValue).value;
+
+      switch (unaryOp.token.type) {
+        case TokenType.exclamation: return BooleanValue(!value);
+        default: throw InvalidOperationException(unaryOp.token);
+      }
     }
 
-    var value = (data as NumberValue).value;
-
-    switch (unaryOp.token.type) {
-      case TokenType.plus: return NumberValue(value);
-      case TokenType.minus: return NumberValue(-value);
-      default: throw InvalidOperationException(unaryOp.token);
-    }
+    return NullValue();
   }
 
   Value visitVarDecl(VarDeclNode varDecl) {

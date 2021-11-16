@@ -105,7 +105,9 @@ class Parser {
       case TokenType.minus:
         eat(TokenType.minus);
         return UnaryOpNode(token: token, expr: factor());
-
+      case TokenType.exclamation:
+        eat(TokenType.exclamation);
+        return UnaryOpNode(token: token, expr: factor());
       case TokenType.number:
         eat(TokenType.number);
         return NumberNode(token: token);

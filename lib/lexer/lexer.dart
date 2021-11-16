@@ -141,6 +141,11 @@ class Lexer {
 
           return token;
         }
+
+        var token = makeToken(TokenType.exclamation);
+        advance();
+
+        return token;
       }
 
       if (currentChar == '<') {
