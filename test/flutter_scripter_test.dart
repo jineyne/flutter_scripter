@@ -300,10 +300,38 @@ void test_scripter() {
     var result = scripter.execute('''
 var a = false
 var b = true
-var c = a && b
+var equalTest = a && b
 ''');
+
     expect(result is BooleanValue, true);
     expect((result as BooleanValue).value, false);
+  });
+
+  test('test scripter #5', () {
+    var scripter = FlutterScripter();
+    var result = scripter.execute('''
+var a = 10
+var b = 20
+var gt = a > b
+var gte = a >= b
+var lt = a < b
+var lte = a <= b
+var eq = a == b
+var neq = a != b
+''');
+
+    var valueTest = (String name, bool expectValue) {
+      var v = scripter.getValue(name);
+      expect(v is BooleanValue, true);
+      expect((v as BooleanValue).value, expectValue);
+    };
+
+    valueTest('gt', false);
+    valueTest('gte', false);
+    valueTest('lt', true);
+    valueTest('lte', true);
+    valueTest('eq', false);
+    valueTest('neq', true);
   });
 }
 

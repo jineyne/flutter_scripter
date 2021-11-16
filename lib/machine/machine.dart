@@ -3,6 +3,7 @@ import 'package:flutter_scripter/ast/expression/assign_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bool_op_node.dart';
 import 'package:flutter_scripter/ast/expression/boolean_node.dart';
+import 'package:flutter_scripter/ast/expression/compare_node.dart';
 import 'package:flutter_scripter/ast/expression/empty_op_node.dart';
 import 'package:flutter_scripter/ast/expression/number_node.dart';
 import 'package:flutter_scripter/ast/expression/string_node.dart';
@@ -60,6 +61,10 @@ class Machine {
       return visitCompound(node);
     } else if (node is BinOpNode) {
       return visitBinOp(node);
+    } else if (node is BoolOpNode) {
+      return visitBoolOp(node);
+    } else if (node is CompareNode) {
+      return visitCompare(node);
     } else if (node is BooleanNode) {
       return visitBoolean(node);
     } else if (node is NumberNode) {
@@ -154,6 +159,59 @@ class Machine {
       default:
         throw InvalidOperationException(boolOp.op);
     }
+  }
+
+  Value visitCompare(CompareNode compare) {
+    var left = visit(compare.left);
+    var right = visit(compare.right);
+
+    if (left.isNumber && right.isNumber) {
+      var leftValue = (left as NumberValue).value;
+      var rightValue = (right as NumberValue).value;
+
+      switch (compare.type) {
+        case TokenType.gt:
+          return BooleanValue(leftValue > rightValue);
+        case TokenType.gte:
+          return BooleanValue(leftValue >= rightValue);
+        case TokenType.lt:
+          return BooleanValue(leftValue < rightValue);
+        case TokenType.lte:
+          return BooleanValue(leftValue <= rightValue);
+        case TokenType.equal:
+          return BooleanValue(leftValue == rightValue);
+        case TokenType.notEqual:
+          return BooleanValue(leftValue != rightValue);
+        default:
+          throw InvalidOperationException(compare.op);
+      }
+    } else if (left.isString && right.isString) {
+      var leftValue = (left as StringValue).value;
+      var rightValue = (right as StringValue).value;
+
+      switch (compare.type) {
+        case TokenType.equal:
+          return BooleanValue(leftValue == rightValue);
+        case TokenType.notEqual:
+          return BooleanValue(leftValue != rightValue);
+        default:
+          throw InvalidOperationException(compare.op);
+      }
+    } else if (left.isBoolean && right.isBoolean) {
+      var leftValue = (left as BooleanValue).value;
+      var rightValue = (right as BooleanValue).value;
+
+      switch (compare.type) {
+        case TokenType.equal:
+          return BooleanValue(leftValue == rightValue);
+        case TokenType.notEqual:
+          return BooleanValue(leftValue != rightValue);
+        default:
+          throw InvalidOperationException(compare.op);
+      }
+    }
+
+    throw InvalidCastException(compare.op);
   }
 
   Value visitUnaryOp(UnaryOpNode unaryOp) {

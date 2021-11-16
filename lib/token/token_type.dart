@@ -10,6 +10,14 @@ enum TokenType {
   and,
   or,
 
+  gt,
+  gte,
+  lt,
+  lte,
+
+  equal,
+  notEqual,
+
   leftParen,
   rightParen,
 

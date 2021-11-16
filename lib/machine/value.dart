@@ -19,6 +19,11 @@ class BooleanValue extends Value {
   String asString() {
     return '$value';
   }
+
+  @override
+  String toString() {
+    return asString();
+  }
 }
 
 class NumberValue extends Value {
@@ -32,6 +37,11 @@ class NumberValue extends Value {
   @override
   String asString() {
     return value.toString();
+  }
+
+  @override
+  String toString() {
+    return asString();
   }
 }
 
@@ -47,6 +57,11 @@ class StringValue extends Value {
   String asString() {
     return value;
   }
+
+  @override
+  String toString() {
+    return asString();
+  }
 }
 
 class NullValue extends Value {
@@ -56,5 +71,10 @@ class NullValue extends Value {
   @override
   String asString() {
     return "null";
+  }
+
+  @override
+  String toString() {
+    return asString();
   }
 }

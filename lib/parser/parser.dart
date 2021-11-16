@@ -3,6 +3,7 @@ import 'package:flutter_scripter/ast/expression/assign_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bool_op_node.dart';
 import 'package:flutter_scripter/ast/expression/boolean_node.dart';
+import 'package:flutter_scripter/ast/expression/compare_node.dart';
 import 'package:flutter_scripter/ast/expression/empty_op_node.dart';
 import 'package:flutter_scripter/ast/expression/number_node.dart';
 import 'package:flutter_scripter/ast/expression/string_node.dart';
@@ -178,14 +179,45 @@ class Parser {
     return node;
   }
 
-  ExpressionNode level11() {
+  ExpressionNode level6() {
     var node = level4();
+    var token = currentToken;
+
+    switch (token.type) {
+      case TokenType.gt:
+        eat(TokenType.gt);
+        return CompareNode(left: node, token: token, right: level4());
+      case TokenType.gte:
+        eat(TokenType.gte);
+        return CompareNode(left: node, token: token, right: level4());
+      case TokenType.lt:
+        eat(TokenType.lt);
+        return CompareNode(left: node, token: token, right: level4());
+      case TokenType.lte:
+        eat(TokenType.lte);
+        return CompareNode(left: node, token: token, right: level4());
+      case TokenType.equal:
+        eat(TokenType.equal);
+        return CompareNode(left: node, token: token, right: level4());
+      case TokenType.notEqual:
+        eat(TokenType.notEqual);
+        return CompareNode(left: node, token: token, right: level4());
+
+      default:
+        break;
+    }
+
+    return node;
+  }
+
+  ExpressionNode level11() {
+    var node = level6();
 
     if (currentToken.type == TokenType.and) {
       var token = currentToken;
       eat(TokenType.and);
 
-      node = BoolOpNode(token: token, left: node, right: level3());
+      node = BoolOpNode(token: token, left: node, right: level6());
     }
 
     return node;
@@ -205,7 +237,7 @@ class Parser {
   }
 
   ExpressionNode expr() {
-    return level4();
+    return level12();
   }
 
   VarNode variable() {

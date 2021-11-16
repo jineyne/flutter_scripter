@@ -119,7 +119,54 @@ class Lexer {
       }
 
       if (currentChar == '=') {
+        if (peek() == '=') {
+          var token = makeToken(TokenType.equal);
+          advance();
+          advance();
+
+          return token;
+        }
+
         var token = makeToken(TokenType.assign);
+        advance();
+
+        return token;
+      }
+
+      if (currentChar == '!') {
+        if (peek() == '=') {
+          var token = makeToken(TokenType.notEqual);
+          advance();
+          advance();
+
+          return token;
+        }
+      }
+
+      if (currentChar == '<') {
+        if (peek() == '=') {
+          var token = makeToken(TokenType.lte);
+          advance();
+          advance();
+
+          return token;
+        }
+
+        var token = makeToken(TokenType.lt);
+        advance();
+
+        return token;
+      }
+      if (currentChar == '>') {
+        if (peek() == '=') {
+          var token = makeToken(TokenType.gte);
+          advance();
+          advance();
+
+          return token;
+        }
+
+        var token = makeToken(TokenType.gt);
         advance();
 
         return token;
