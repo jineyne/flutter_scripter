@@ -7,6 +7,9 @@ enum TokenType {
   slash,
   asterisk,
 
+  and,
+  or,
+
   leftParen,
   rightParen,
 

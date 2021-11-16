@@ -31,6 +31,15 @@ class Lexer {
     }
   }
 
+  String peek() {
+    var peekPos = pos + 1;
+    if (peekPos >= text.length) {
+      return  '';
+    } else {
+      return text.characters.elementAt(peekPos);
+    }
+  }
+
   void skipWhitespace() {
     while (currentChar.isSpace() && currentChar != '\n') {
       advance();
@@ -142,6 +151,26 @@ class Lexer {
         advance();
 
         return token;
+      }
+
+      if (currentChar == '&') {
+        if (peek() == '&') {
+          var token = makeToken(TokenType.and);
+          advance();
+          advance();
+
+          return token;
+        }
+      }
+
+      if (currentChar == '|') {
+        if (peek() == '|') {
+          var token = makeToken(TokenType.or);
+          advance();
+          advance();
+
+          return token;
+        }
       }
 
       if (currentChar == '(') {

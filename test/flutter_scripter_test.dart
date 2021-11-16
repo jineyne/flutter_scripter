@@ -294,6 +294,17 @@ void test_scripter() {
     expect(result is NumberValue, true);
     expect((result as NumberValue).value, 10);
   });
+
+  test('test scripter #4', () {
+    var scripter = FlutterScripter();
+    var result = scripter.execute('''
+var a = false
+var b = true
+var c = a && b
+''');
+    expect(result is BooleanValue, true);
+    expect((result as BooleanValue).value, false);
+  });
 }
 
 void main() {

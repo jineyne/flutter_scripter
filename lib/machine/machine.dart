@@ -1,6 +1,7 @@
 import 'package:flutter_scripter/ast/ast_node.dart';
 import 'package:flutter_scripter/ast/expression/assign_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
+import 'package:flutter_scripter/ast/expression/bool_op_node.dart';
 import 'package:flutter_scripter/ast/expression/boolean_node.dart';
 import 'package:flutter_scripter/ast/expression/empty_op_node.dart';
 import 'package:flutter_scripter/ast/expression/number_node.dart';
@@ -130,6 +131,29 @@ class Machine {
 
     throw InvalidCastException(binOp.token);
     return NullValue();
+  }
+
+  Value visitBoolOp(BoolOpNode boolOp) {
+    var left = visit(boolOp.left);
+    var right = visit(boolOp.right);
+
+    if (!left.isBoolean || !right.isBoolean) {
+      throw InvalidCastException(boolOp.op);
+    }
+
+    var leftValue = (left as BooleanValue).value;
+    var rightValue = (right as BooleanValue).value;
+
+    switch (boolOp.type) {
+      case TokenType.and:
+        return BooleanValue(leftValue && rightValue);
+
+      case TokenType.or:
+        return BooleanValue(leftValue || rightValue);
+
+      default:
+        throw InvalidOperationException(boolOp.op);
+    }
   }
 
   Value visitUnaryOp(UnaryOpNode unaryOp) {

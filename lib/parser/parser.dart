@@ -1,6 +1,7 @@
 import 'package:flutter_scripter/ast/ast_node.dart';
 import 'package:flutter_scripter/ast/expression/assign_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
+import 'package:flutter_scripter/ast/expression/bool_op_node.dart';
 import 'package:flutter_scripter/ast/expression/boolean_node.dart';
 import 'package:flutter_scripter/ast/expression/empty_op_node.dart';
 import 'package:flutter_scripter/ast/expression/number_node.dart';
@@ -96,36 +97,55 @@ class Parser {
 
   ExpressionNode factor() {
     var token = currentToken;
-    if (token.type == TokenType.plus) {
-      eat(TokenType.plus);
-      return UnaryOpNode(token: token, expr: factor());
-    } else if (token.type == TokenType.minus) {
-      eat(TokenType.minus);
-      return UnaryOpNode(token: token, expr: factor());
-    } else if (token.type == TokenType.number) {
-      eat(TokenType.number);
-      return NumberNode(token: token);
-    } else if (token.type == TokenType.string) {
-      eat(TokenType.string);
-      return StringNode(token: token, value: token.value);
-    } else if (token.type == TokenType.boolean) {
-      eat(TokenType.boolean);
-      return BooleanNode(token: token, value: token.value == 'true' ? true : false);
-    } else if (token.type == TokenType.leftParen) {
-      eat(TokenType.leftParen);
-      var node = expr();
-      eat(TokenType.rightParen);
+    switch (token.type) {
+      case TokenType.plus:
+        eat(TokenType.plus);
+        return UnaryOpNode(token: token, expr: factor());
+      case TokenType.minus:
+        eat(TokenType.minus);
+        return UnaryOpNode(token: token, expr: factor());
 
-      return node;
-    } else if (token.type == TokenType.identifier) {
-      return variable();
+      case TokenType.number:
+        eat(TokenType.number);
+        return NumberNode(token: token);
+      case TokenType.string:
+        eat(TokenType.string);
+        return StringNode(token: token, value: token.value);
+      case TokenType.boolean:
+        eat(TokenType.boolean);
+        return BooleanNode(token: token, value: token.value == 'true' ? true : false);
+
+      case TokenType.leftParen:
+        eat(TokenType.leftParen);
+        var node = expr();
+        eat(TokenType.rightParen);
+
+        return node;
+
+      case TokenType.identifier:
+        return variable();
+
+      default:
+        return empty();
     }
 
     return empty();
   }
 
-  ExpressionNode term() {
+  ExpressionNode level1() {
     var node = factor();
+
+    return node;
+  }
+
+  ExpressionNode level2() {
+    var node = level1();
+
+    return node;
+  }
+
+  ExpressionNode level3() {
+    var node = level2();
 
     while (currentToken.type == TokenType.asterisk || currentToken.type == TokenType.slash) {
       var token = currentToken;
@@ -135,14 +155,14 @@ class Parser {
         eat(TokenType.slash);
       }
 
-      node = BinOpNode(left: node, token: token, right: factor());
+      node = BinOpNode(left: node, token: token, right: level2());
     }
 
     return node;
   }
 
-  ExpressionNode expr() {
-    var node = term();
+  ExpressionNode level4() {
+    var node = level3();
 
     while (currentToken.type == TokenType.plus || currentToken.type == TokenType.minus) {
       var token = currentToken;
@@ -152,10 +172,40 @@ class Parser {
         eat(TokenType.minus);
       }
 
-      node = BinOpNode(left: node, token: token, right: term());
+      node = BinOpNode(left: node, token: token, right: level3());
     }
 
     return node;
+  }
+
+  ExpressionNode level11() {
+    var node = level4();
+
+    if (currentToken.type == TokenType.and) {
+      var token = currentToken;
+      eat(TokenType.and);
+
+      node = BoolOpNode(token: token, left: node, right: level3());
+    }
+
+    return node;
+  }
+
+  ExpressionNode level12() {
+    var node = level11();
+
+    if (currentToken.type == TokenType.or) {
+      var token = currentToken;
+      eat(TokenType.or);
+
+      node = BoolOpNode(token: token, left: node, right: level3());
+    }
+
+    return node;
+  }
+
+  ExpressionNode expr() {
+    return level4();
   }
 
   VarNode variable() {
