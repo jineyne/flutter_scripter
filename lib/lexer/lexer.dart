@@ -6,9 +6,11 @@ import 'package:flutter_scripter/util/extension/string_extension.dart';
 
 class Lexer {
   static var keyword = <String, TokenType>{
-    'var' : TokenType.variable,
-    'true' : TokenType.boolean,
-    'false' : TokenType.boolean,
+    'var' : TokenType.Variable,
+    'if' : TokenType.If,
+    'else' : TokenType.Else,
+    'true' : TokenType.Boolean,
+    'false' : TokenType.Boolean,
   };
 
   String text;
@@ -27,7 +29,7 @@ class Lexer {
     if (pos >= text.length) {
       currentChar = '';
     } else {
-      currentChar = text.characters.elementAt(pos);
+      currentChar = text[pos];
     }
   }
 
@@ -56,7 +58,7 @@ class Lexer {
 
     var id = sb.toString();
     if (keyword.containsKey(id)) {
-      return Token.keyword(keyword[id] ?? TokenType.eof, id, lineNo, pos);
+      return Token.keyword(keyword[id] ?? TokenType.EOF, id, lineNo, pos);
     }
 
     return Token.identifier(id, lineNo, pos);
@@ -96,7 +98,7 @@ class Lexer {
         if (currentChar != '\n') {
           skipWhitespace();
         } else {
-          var token = Token(TokenType.eol, lineNo, cursorPos);
+          var token = Token(TokenType.EOL, lineNo, cursorPos);
 
           lineNo += 1;
           cursorPos = 0;
@@ -120,14 +122,14 @@ class Lexer {
 
       if (currentChar == '=') {
         if (peek() == '=') {
-          var token = makeToken(TokenType.equal);
+          var token = makeToken(TokenType.Equal);
           advance();
           advance();
 
           return token;
         }
 
-        var token = makeToken(TokenType.assign);
+        var token = makeToken(TokenType.Assign);
         advance();
 
         return token;
@@ -135,14 +137,14 @@ class Lexer {
 
       if (currentChar == '!') {
         if (peek() == '=') {
-          var token = makeToken(TokenType.notEqual);
+          var token = makeToken(TokenType.NotEqual);
           advance();
           advance();
 
           return token;
         }
 
-        var token = makeToken(TokenType.exclamation);
+        var token = makeToken(TokenType.Exclamation);
         advance();
 
         return token;
@@ -150,56 +152,56 @@ class Lexer {
 
       if (currentChar == '<') {
         if (peek() == '=') {
-          var token = makeToken(TokenType.lte);
+          var token = makeToken(TokenType.LTE);
           advance();
           advance();
 
           return token;
         }
 
-        var token = makeToken(TokenType.lt);
+        var token = makeToken(TokenType.LT);
         advance();
 
         return token;
       }
       if (currentChar == '>') {
         if (peek() == '=') {
-          var token = makeToken(TokenType.gte);
+          var token = makeToken(TokenType.GTE);
           advance();
           advance();
 
           return token;
         }
 
-        var token = makeToken(TokenType.gt);
+        var token = makeToken(TokenType.GT);
         advance();
 
         return token;
       }
 
       if (currentChar == '+') {
-        var token = makeToken(TokenType.plus);
+        var token = makeToken(TokenType.Plus);
         advance();
 
         return token;
       }
 
       if (currentChar == '-') {
-        var token = makeToken(TokenType.minus);
+        var token = makeToken(TokenType.Minus);
         advance();
 
         return token;
       }
 
       if (currentChar == '/') {
-        var token = makeToken(TokenType.slash);
+        var token = makeToken(TokenType.Slash);
         advance();
 
         return token;
       }
 
       if (currentChar == '*') {
-        var token = makeToken(TokenType.asterisk);
+        var token = makeToken(TokenType.Asterisk);
         advance();
 
         return token;
@@ -207,7 +209,7 @@ class Lexer {
 
       if (currentChar == '&') {
         if (peek() == '&') {
-          var token = makeToken(TokenType.and);
+          var token = makeToken(TokenType.And);
           advance();
           advance();
 
@@ -217,7 +219,7 @@ class Lexer {
 
       if (currentChar == '|') {
         if (peek() == '|') {
-          var token = makeToken(TokenType.or);
+          var token = makeToken(TokenType.Or);
           advance();
           advance();
 
@@ -226,14 +228,28 @@ class Lexer {
       }
 
       if (currentChar == '(') {
-        var token = makeToken(TokenType.leftParen);
+        var token = makeToken(TokenType.LeftParen);
         advance();
 
         return token;
       }
 
       if (currentChar == ')') {
-        var token = makeToken(TokenType.rightParen);
+        var token = makeToken(TokenType.RightParen);
+        advance();
+
+        return token;
+      }
+
+      if (currentChar == '{') {
+        var token = makeToken(TokenType.LeftBracket);
+        advance();
+
+        return token;
+      }
+
+      if (currentChar == '}') {
+        var token = makeToken(TokenType.RightBracket);
         advance();
 
         return token;
@@ -242,7 +258,7 @@ class Lexer {
       throw InvalidTokenException(Token.unknown(currentChar, lineNo, pos));
     }
 
-    return makeToken(TokenType.eof);
+    return makeToken(TokenType.EOF);
   }
 
   Token makeToken(TokenType type) {

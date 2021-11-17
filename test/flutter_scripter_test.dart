@@ -1,7 +1,8 @@
 import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
 import 'package:flutter_scripter/ast/expression/number_node.dart';
 import 'package:flutter_scripter/ast/expression/unary_op_node.dart';
-import 'package:flutter_scripter/ast/expression/var_decl_node.dart';
+import 'package:flutter_scripter/ast/statement/if_node.dart';
+import 'package:flutter_scripter/ast/statement/var_decl_node.dart';
 import 'package:flutter_scripter/ast/statement/compound_node.dart';
 import 'package:flutter_scripter/exception/invalid_cast_exception.dart';
 import 'package:flutter_scripter/exception/invalid_token_exception.dart';
@@ -19,30 +20,30 @@ void test_lexer() {
     var lexer = Lexer(text: '"text for test"');
 
     var token = lexer.getNextToken();
-    expect(token.type, TokenType.string);
+    expect(token.type, TokenType.String);
     expect(token.value, "text for test");
   });
 
   test('test lexer for lexing exp', () {
     var lexer = Lexer(text: '5 + 1');
 
-    expect(lexer.getNextToken().type, TokenType.number);
-    expect(lexer.getNextToken().type, TokenType.plus);
-    expect(lexer.getNextToken().type, TokenType.number);
-    expect(lexer.getNextToken().type, TokenType.eof);
+    expect(lexer.getNextToken().type, TokenType.Number);
+    expect(lexer.getNextToken().type, TokenType.Plus);
+    expect(lexer.getNextToken().type, TokenType.Number);
+    expect(lexer.getNextToken().type, TokenType.EOF);
   });
 
   test('test lexer for lexing complicate exp', () {
     var lexer = Lexer(text: '5 + (1 * 10)');
 
-    expect(lexer.getNextToken().type, TokenType.number);
-    expect(lexer.getNextToken().type, TokenType.plus);
-    expect(lexer.getNextToken().type, TokenType.leftParen);
-    expect(lexer.getNextToken().type, TokenType.number);
-    expect(lexer.getNextToken().type, TokenType.asterisk);
-    expect(lexer.getNextToken().type, TokenType.number);
-    expect(lexer.getNextToken().type, TokenType.rightParen);
-    expect(lexer.getNextToken().type, TokenType.eof);
+    expect(lexer.getNextToken().type, TokenType.Number);
+    expect(lexer.getNextToken().type, TokenType.Plus);
+    expect(lexer.getNextToken().type, TokenType.LeftParen);
+    expect(lexer.getNextToken().type, TokenType.Number);
+    expect(lexer.getNextToken().type, TokenType.Asterisk);
+    expect(lexer.getNextToken().type, TokenType.Number);
+    expect(lexer.getNextToken().type, TokenType.RightParen);
+    expect(lexer.getNextToken().type, TokenType.EOF);
   });
 
   test('test lexer for multi-line exp', (){
@@ -51,14 +52,14 @@ void test_lexer() {
 2 + 3
 ''');
 
-    expect(lexer.getNextToken().type, TokenType.number);
-    expect(lexer.getNextToken().type, TokenType.plus);
-    expect(lexer.getNextToken().type, TokenType.number);
-    expect(lexer.getNextToken().type, TokenType.eol);
-    expect(lexer.getNextToken().type, TokenType.number);
-    expect(lexer.getNextToken().type, TokenType.plus);
-    expect(lexer.getNextToken().type, TokenType.number);
-    expect(lexer.getNextToken().type, TokenType.eol);
+    expect(lexer.getNextToken().type, TokenType.Number);
+    expect(lexer.getNextToken().type, TokenType.Plus);
+    expect(lexer.getNextToken().type, TokenType.Number);
+    expect(lexer.getNextToken().type, TokenType.EOL);
+    expect(lexer.getNextToken().type, TokenType.Number);
+    expect(lexer.getNextToken().type, TokenType.Plus);
+    expect(lexer.getNextToken().type, TokenType.Number);
+    expect(lexer.getNextToken().type, TokenType.EOL);
   });
 
   test('test lexer for invalid token', () {
@@ -67,13 +68,13 @@ void test_lexer() {
 2 + 3^
 ''');
 
-    expect(lexer.getNextToken().type, TokenType.number);
-    expect(lexer.getNextToken().type, TokenType.plus);
-    expect(lexer.getNextToken().type, TokenType.number);
-    expect(lexer.getNextToken().type, TokenType.eol);
-    expect(lexer.getNextToken().type, TokenType.number);
-    expect(lexer.getNextToken().type, TokenType.plus);
-    expect(lexer.getNextToken().type, TokenType.number);
+    expect(lexer.getNextToken().type, TokenType.Number);
+    expect(lexer.getNextToken().type, TokenType.Plus);
+    expect(lexer.getNextToken().type, TokenType.Number);
+    expect(lexer.getNextToken().type, TokenType.EOL);
+    expect(lexer.getNextToken().type, TokenType.Number);
+    expect(lexer.getNextToken().type, TokenType.Plus);
+    expect(lexer.getNextToken().type, TokenType.Number);
     expect(() => lexer.getNextToken(), throwsA(isA<InvalidTokenException>()));
   });
 }
@@ -131,6 +132,26 @@ var b = 2 + a
 
     expect(compound.children[0] is VarDeclNode, true);
     expect(compound.children[1] is VarDeclNode, true);
+  });
+
+  test('test parser if statement', () {
+    var lexer = Lexer(text: '''
+var a = 10
+var b = 20
+if (a == 10) b = 30
+''');
+    var parser = Parser(lexer);
+    var root = parser.parse();
+    expect(parser.isError, false);
+
+    expect(root is CompoundNode, true);
+
+    var compound = root as CompoundNode;
+    expect(compound.children.length, 3);
+
+    expect(compound.children[0] is VarDeclNode, true);
+    expect(compound.children[1] is VarDeclNode, true);
+    expect(compound.children[2] is IfNode, true);
   });
 }
 void test_machine() {
@@ -336,6 +357,35 @@ var neq = a != b
     result = scripter.eval('!eq');
     expect(result is BooleanValue, true);
     expect((result as BooleanValue).value, true);
+  });
+
+  test('test scripter #6', () {
+    var scripter = FlutterScripter();
+    var result = scripter.execute('''
+var a = 10
+var b = 0
+
+if (a == 10) b = 10
+else b = 20
+''');
+
+    var value = scripter.getValue('b');
+    expect(value is NumberValue, true);
+    expect((value as NumberValue).value, 10);
+
+    result = scripter.execute('''
+if (a < 5) {
+  b = 5
+} else if (a < 10) {
+  b = 10
+} else if (a < 15) {
+  b = 20
+}
+''');
+
+    value = scripter.getValue('b');
+    expect(value is NumberValue, true);
+    expect((value as NumberValue).value, 20);
   });
 }
 

@@ -1,8 +1,8 @@
 import 'package:flutter_scripter/ast/ast_node.dart';
-import 'package:flutter_scripter/ast/expression_node.dart';
+import 'package:flutter_scripter/ast/statement_node.dart';
 import 'package:flutter_scripter/token/token.dart';
 
-class VarDeclNode extends ExpressionNode {
+class VarDeclNode extends StatementNode {
   ASTNode variable;
   ASTNode initializer;
 

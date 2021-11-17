@@ -1,17 +1,19 @@
 import 'package:flutter_scripter/ast/ast_node.dart';
-import 'package:flutter_scripter/ast/expression/assign_op_node.dart';
+import 'package:flutter_scripter/ast/statement/assign_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bool_op_node.dart';
 import 'package:flutter_scripter/ast/expression/boolean_node.dart';
 import 'package:flutter_scripter/ast/expression/compare_node.dart';
 import 'package:flutter_scripter/ast/expression/empty_op_node.dart';
+import 'package:flutter_scripter/ast/statement/if_node.dart';
 import 'package:flutter_scripter/ast/expression/number_node.dart';
 import 'package:flutter_scripter/ast/expression/string_node.dart';
 import 'package:flutter_scripter/ast/expression/unary_op_node.dart';
-import 'package:flutter_scripter/ast/expression/var_decl_node.dart';
+import 'package:flutter_scripter/ast/statement/var_decl_node.dart';
 import 'package:flutter_scripter/ast/expression/var_node.dart';
 import 'package:flutter_scripter/ast/expression_node.dart';
 import 'package:flutter_scripter/ast/statement/compound_node.dart';
+import 'package:flutter_scripter/ast/statement_node.dart';
 import 'package:flutter_scripter/lexer/lexer.dart';
 import 'package:flutter_scripter/token/token.dart';
 import 'package:flutter_scripter/token/token_type.dart';
@@ -43,11 +45,12 @@ class Parser {
     }
   }
 
-  ASTNode statement() {
+  StatementNode statement() {
     switch (currentToken.type) {
-      case TokenType.identifier: return assignmentStatement();
-      case TokenType.variable: return varDeclStatement();
-      default: return empty();
+      case TokenType.If: return ifStatement();
+      case TokenType.Identifier: return assignmentStatement();
+      case TokenType.Variable: return varDeclStatement();
+      default: return CompoundNode(token: currentToken, children: []);
     }
   }
 
@@ -55,19 +58,28 @@ class Parser {
     var result = <ASTNode>[];
     result.add(statement());
 
-    while (currentToken.type == TokenType.eol) {
-      eat(TokenType.eol);
+    while (currentToken.type == TokenType.EOL) {
+      eat(TokenType.EOL);
       result.add(statement());
     }
 
-    if (currentToken.type == TokenType.identifier) {
+    if (currentToken.type == TokenType.Identifier) {
       error('Invalid identifier');
     }
 
     return result;
   }
 
-  ASTNode compoundStatement() {
+  CompoundNode blockStatement() {
+    var token = currentToken;
+    eat(TokenType.LeftBracket);
+    var nodes = statementList();
+    eat(TokenType.RightBracket);
+
+    return CompoundNode(token: token, children: nodes);
+  }
+
+  CompoundNode compoundStatement() {
     var token = currentToken;
     // TODO: {} 확인하기
     var nodes = statementList();
@@ -77,11 +89,11 @@ class Parser {
 
   VarDeclNode varDeclStatement() {
     var token = currentToken;
-    eat(TokenType.variable);
+    eat(TokenType.Variable);
 
     var id = variable();
 
-    eat(TokenType.assign);
+    eat(TokenType.Assign);
     var initializer = expr();
 
     return VarDeclNode(variable: id, token: token, initializer: initializer);
@@ -90,42 +102,70 @@ class Parser {
   AssignOpNode assignmentStatement() {
     var left = variable();
     var token = currentToken;
-    eat(TokenType.assign);
+    eat(TokenType.Assign);
     var right = expr();
 
     return AssignOpNode(left: left, token: token, right: right);
   }
 
+  IfNode ifStatement() {
+    var token = currentToken;
+    eat(TokenType.If);
+
+    eat(TokenType.LeftParen);
+    var exp = expr();
+    eat(TokenType.RightParen);
+
+    late StatementNode body;
+    if (currentToken.type == TokenType.LeftBracket) {
+      body = blockStatement();
+    } else {
+      body = compoundStatement();
+    }
+
+    StatementNode? orElse;
+    if (currentToken.type == TokenType.Else) {
+      eat(TokenType.Else);
+      if (currentToken.type == TokenType.LeftBracket) {
+        orElse = blockStatement();
+      } else {
+        orElse = compoundStatement();
+      }
+    }
+
+    return IfNode(token: token, expr: exp, body: body, orElse: orElse);
+  }
+
   ExpressionNode factor() {
     var token = currentToken;
     switch (token.type) {
-      case TokenType.plus:
-        eat(TokenType.plus);
+      case TokenType.Plus:
+        eat(TokenType.Plus);
         return UnaryOpNode(token: token, expr: factor());
-      case TokenType.minus:
-        eat(TokenType.minus);
+      case TokenType.Minus:
+        eat(TokenType.Minus);
         return UnaryOpNode(token: token, expr: factor());
-      case TokenType.exclamation:
-        eat(TokenType.exclamation);
+      case TokenType.Exclamation:
+        eat(TokenType.Exclamation);
         return UnaryOpNode(token: token, expr: factor());
-      case TokenType.number:
-        eat(TokenType.number);
+      case TokenType.Number:
+        eat(TokenType.Number);
         return NumberNode(token: token);
-      case TokenType.string:
-        eat(TokenType.string);
+      case TokenType.String:
+        eat(TokenType.String);
         return StringNode(token: token, value: token.value);
-      case TokenType.boolean:
-        eat(TokenType.boolean);
+      case TokenType.Boolean:
+        eat(TokenType.Boolean);
         return BooleanNode(token: token, value: token.value == 'true' ? true : false);
 
-      case TokenType.leftParen:
-        eat(TokenType.leftParen);
+      case TokenType.LeftParen:
+        eat(TokenType.LeftParen);
         var node = expr();
-        eat(TokenType.rightParen);
+        eat(TokenType.RightParen);
 
         return node;
 
-      case TokenType.identifier:
+      case TokenType.Identifier:
         return variable();
 
       default:
@@ -150,12 +190,12 @@ class Parser {
   ExpressionNode level3() {
     var node = level2();
 
-    while (currentToken.type == TokenType.asterisk || currentToken.type == TokenType.slash) {
+    while (currentToken.type == TokenType.Asterisk || currentToken.type == TokenType.Slash) {
       var token = currentToken;
-      if (token.type == TokenType.asterisk) {
-        eat(TokenType.asterisk);
-      } else if (token.type == TokenType.slash) {
-        eat(TokenType.slash);
+      if (token.type == TokenType.Asterisk) {
+        eat(TokenType.Asterisk);
+      } else if (token.type == TokenType.Slash) {
+        eat(TokenType.Slash);
       }
 
       node = BinOpNode(left: node, token: token, right: level2());
@@ -167,12 +207,12 @@ class Parser {
   ExpressionNode level4() {
     var node = level3();
 
-    while (currentToken.type == TokenType.plus || currentToken.type == TokenType.minus) {
+    while (currentToken.type == TokenType.Plus || currentToken.type == TokenType.Minus) {
       var token = currentToken;
-      if (token.type == TokenType.plus) {
-        eat(TokenType.plus);
-      } else if (token.type == TokenType.minus) {
-        eat(TokenType.minus);
+      if (token.type == TokenType.Plus) {
+        eat(TokenType.Plus);
+      } else if (token.type == TokenType.Minus) {
+        eat(TokenType.Minus);
       }
 
       node = BinOpNode(left: node, token: token, right: level3());
@@ -186,23 +226,23 @@ class Parser {
     var token = currentToken;
 
     switch (token.type) {
-      case TokenType.gt:
-        eat(TokenType.gt);
+      case TokenType.GT:
+        eat(TokenType.GT);
         return CompareNode(left: node, token: token, right: level4());
-      case TokenType.gte:
-        eat(TokenType.gte);
+      case TokenType.GTE:
+        eat(TokenType.GTE);
         return CompareNode(left: node, token: token, right: level4());
-      case TokenType.lt:
-        eat(TokenType.lt);
+      case TokenType.LT:
+        eat(TokenType.LT);
         return CompareNode(left: node, token: token, right: level4());
-      case TokenType.lte:
-        eat(TokenType.lte);
+      case TokenType.LTE:
+        eat(TokenType.LTE);
         return CompareNode(left: node, token: token, right: level4());
-      case TokenType.equal:
-        eat(TokenType.equal);
+      case TokenType.Equal:
+        eat(TokenType.Equal);
         return CompareNode(left: node, token: token, right: level4());
-      case TokenType.notEqual:
-        eat(TokenType.notEqual);
+      case TokenType.NotEqual:
+        eat(TokenType.NotEqual);
         return CompareNode(left: node, token: token, right: level4());
 
       default:
@@ -215,9 +255,9 @@ class Parser {
   ExpressionNode level11() {
     var node = level6();
 
-    if (currentToken.type == TokenType.and) {
+    if (currentToken.type == TokenType.And) {
       var token = currentToken;
-      eat(TokenType.and);
+      eat(TokenType.And);
 
       node = BoolOpNode(token: token, left: node, right: level6());
     }
@@ -228,9 +268,9 @@ class Parser {
   ExpressionNode level12() {
     var node = level11();
 
-    if (currentToken.type == TokenType.or) {
+    if (currentToken.type == TokenType.Or) {
       var token = currentToken;
-      eat(TokenType.or);
+      eat(TokenType.Or);
 
       node = BoolOpNode(token: token, left: node, right: level3());
     }
@@ -244,7 +284,7 @@ class Parser {
 
   VarNode variable() {
     var node = VarNode(token: currentToken, id: currentToken.value);
-    eat(TokenType.identifier);
+    eat(TokenType.Identifier);
     return node;
   }
 
