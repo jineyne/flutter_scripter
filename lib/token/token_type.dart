@@ -1,35 +1,40 @@
 enum TokenType {
-  assign,
-  variable,
+  Assign,
 
-  plus,
-  minus,
-  slash,
-  asterisk,
+  Variable,
+  If,
+  Else,
 
-  exclamation,
+  Plus,
+  Minus,
+  Slash,
+  Asterisk,
 
-  and,
-  or,
+  Exclamation,
 
-  gt,
-  gte,
-  lt,
-  lte,
+  And,
+  Or,
 
-  equal,
-  notEqual,
+  GT,
+  GTE,
+  LT,
+  LTE,
 
-  leftParen,
-  rightParen,
+  Equal,
+  NotEqual,
 
-  number,
-  string,
-  boolean,
-  identifier,
+  LeftParen,
+  RightParen,
+  LeftBracket,
+  RightBracket,
 
-  eol,
-  eof,
+  Number,
+  String,
+  Boolean,
+  Identifier,
 
-  unknwon,
+  EOL,
+  EOF,
+
+  Unknown,
 }

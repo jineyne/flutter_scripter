@@ -1,8 +1,8 @@
 import 'package:flutter_scripter/ast/ast_node.dart';
-import 'package:flutter_scripter/ast/expression_node.dart';
+import 'package:flutter_scripter/ast/statement_node.dart';
 import 'package:flutter_scripter/token/token.dart';
 
-class AssignOpNode extends ExpressionNode {
+class AssignOpNode extends StatementNode {
   ASTNode left;
   ASTNode right;
 

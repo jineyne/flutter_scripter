@@ -1,5 +1,5 @@
 import 'package:flutter_scripter/ast/ast_node.dart';
-import 'package:flutter_scripter/ast/expression/assign_op_node.dart';
+import 'package:flutter_scripter/ast/statement/assign_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bool_op_node.dart';
 import 'package:flutter_scripter/ast/expression/boolean_node.dart';
@@ -8,7 +8,8 @@ import 'package:flutter_scripter/ast/expression/empty_op_node.dart';
 import 'package:flutter_scripter/ast/expression/number_node.dart';
 import 'package:flutter_scripter/ast/expression/string_node.dart';
 import 'package:flutter_scripter/ast/expression/unary_op_node.dart';
-import 'package:flutter_scripter/ast/expression/var_decl_node.dart';
+import 'package:flutter_scripter/ast/statement/if_node.dart';
+import 'package:flutter_scripter/ast/statement/var_decl_node.dart';
 import 'package:flutter_scripter/ast/expression/var_node.dart';
 import 'package:flutter_scripter/ast/statement/compound_node.dart';
 import 'package:flutter_scripter/exception/invalid_cast_exception.dart';
@@ -18,6 +19,7 @@ import 'package:flutter_scripter/exception/undefined_exception.dart';
 import 'package:flutter_scripter/exception/unsupported_exception.dart';
 import 'package:flutter_scripter/machine/stack_frame.dart';
 import 'package:flutter_scripter/machine/value.dart';
+import 'package:flutter_scripter/token/token.dart';
 import 'package:flutter_scripter/token/token_type.dart';
 import 'package:flutter_scripter/util/container/stack.dart';
 
@@ -59,6 +61,10 @@ class Machine {
   Value visit(ASTNode node) {
     if (node is CompoundNode) {
       return visitCompound(node);
+    } else if (node is AssignOpNode) {
+      return visitAssignOp(node);
+    } else if (node is IfNode) {
+      return visitIf(node);
     } else if (node is BinOpNode) {
       return visitBinOp(node);
     } else if (node is BoolOpNode) {
@@ -97,18 +103,6 @@ class Machine {
     return StringValue(string.value);
   }
 
-  Value visitAssignOp(AssignOpNode assignOp) {
-    var right = visit(assignOp.right);
-
-    if (assignOp.left is VarNode) {
-      var variable = assignOp.left as VarNode;
-      var top = stackFrame.top;
-      top.scope[variable.id] = right;
-    }
-
-    return NullValue();
-  }
-
   Value visitBinOp(BinOpNode binOp) {
     var left = visit(binOp.left);
     var right = visit(binOp.right);
@@ -118,10 +112,10 @@ class Machine {
       var rightValue = (right as NumberValue).value;
 
       switch (binOp.token.type) {
-        case TokenType.plus: return NumberValue(leftValue + rightValue);
-        case TokenType.minus: return NumberValue(leftValue - rightValue);
-        case TokenType.asterisk: return NumberValue(leftValue * rightValue);
-        case TokenType.slash: return NumberValue(leftValue / rightValue);
+        case TokenType.Plus: return NumberValue(leftValue + rightValue);
+        case TokenType.Minus: return NumberValue(leftValue - rightValue);
+        case TokenType.Asterisk: return NumberValue(leftValue * rightValue);
+        case TokenType.Slash: return NumberValue(leftValue / rightValue);
         default: throw InvalidOperationException(binOp.token);
       }
     } else if (left.isString && right.isString) {
@@ -129,7 +123,7 @@ class Machine {
       var rightValue = (right as StringValue).value;
 
       switch (binOp.token.type) {
-        case TokenType.plus: return StringValue(leftValue + rightValue);
+        case TokenType.Plus: return StringValue(leftValue + rightValue);
         default: throw InvalidOperationException(binOp.token);
       }
     }
@@ -150,10 +144,10 @@ class Machine {
     var rightValue = (right as BooleanValue).value;
 
     switch (boolOp.type) {
-      case TokenType.and:
+      case TokenType.And:
         return BooleanValue(leftValue && rightValue);
 
-      case TokenType.or:
+      case TokenType.Or:
         return BooleanValue(leftValue || rightValue);
 
       default:
@@ -170,17 +164,17 @@ class Machine {
       var rightValue = (right as NumberValue).value;
 
       switch (compare.type) {
-        case TokenType.gt:
+        case TokenType.GT:
           return BooleanValue(leftValue > rightValue);
-        case TokenType.gte:
+        case TokenType.GTE:
           return BooleanValue(leftValue >= rightValue);
-        case TokenType.lt:
+        case TokenType.LT:
           return BooleanValue(leftValue < rightValue);
-        case TokenType.lte:
+        case TokenType.LTE:
           return BooleanValue(leftValue <= rightValue);
-        case TokenType.equal:
+        case TokenType.Equal:
           return BooleanValue(leftValue == rightValue);
-        case TokenType.notEqual:
+        case TokenType.NotEqual:
           return BooleanValue(leftValue != rightValue);
         default:
           throw InvalidOperationException(compare.op);
@@ -190,9 +184,9 @@ class Machine {
       var rightValue = (right as StringValue).value;
 
       switch (compare.type) {
-        case TokenType.equal:
+        case TokenType.Equal:
           return BooleanValue(leftValue == rightValue);
-        case TokenType.notEqual:
+        case TokenType.NotEqual:
           return BooleanValue(leftValue != rightValue);
         default:
           throw InvalidOperationException(compare.op);
@@ -202,9 +196,9 @@ class Machine {
       var rightValue = (right as BooleanValue).value;
 
       switch (compare.type) {
-        case TokenType.equal:
+        case TokenType.Equal:
           return BooleanValue(leftValue == rightValue);
-        case TokenType.notEqual:
+        case TokenType.NotEqual:
           return BooleanValue(leftValue != rightValue);
         default:
           throw InvalidOperationException(compare.op);
@@ -221,15 +215,15 @@ class Machine {
       var value = (data as NumberValue).value;
 
       switch (unaryOp.token.type) {
-        case TokenType.plus: return NumberValue(value);
-        case TokenType.minus: return NumberValue(-value);
+        case TokenType.Plus: return NumberValue(value);
+        case TokenType.Minus: return NumberValue(-value);
         default: throw InvalidOperationException(unaryOp.token);
       }
     } else if (data.isBoolean) {
       var value = (data as BooleanValue).value;
 
       switch (unaryOp.token.type) {
-        case TokenType.exclamation: return BooleanValue(!value);
+        case TokenType.Exclamation: return BooleanValue(!value);
         default: throw InvalidOperationException(unaryOp.token);
       }
     }
@@ -259,6 +253,18 @@ class Machine {
     return top.scope[varNode.id] ?? NullValue();
   }
 
+  Value visitAssignOp(AssignOpNode assignOp) {
+    var right = visit(assignOp.right);
+
+    if (assignOp.left is VarNode) {
+      var variable = assignOp.left as VarNode;
+      var top = stackFrame.top;
+      top.scope[variable.id] = right;
+    }
+
+    return NullValue();
+  }
+
   Value visitCompound(CompoundNode compound) {
     Value result = NullValue();
     for (var exp in compound.children) {
@@ -266,10 +272,27 @@ class Machine {
         continue;
       }
 
-      result = visit(exp);
+      var r = visit(exp);
+      if (!r.isNull) {
+        result = r;
+      }
     }
 
     return result;
+  }
+
+  Value visitIf(IfNode _if) {
+    var value = visit(_if.expr);
+    if (!value.isBoolean) {
+      throw InvalidCastException(_if.expr.op);
+    }
+
+    var condition = (value as BooleanValue).value;
+    if (condition) {
+      return visit(_if.body);
+    } else {
+      return visit(_if.orElse ?? EmptyOpNode(token: Token.empty()));
+    }
   }
 
   Value visitEmptyOp(EmptyOpNode emptyOp) {
