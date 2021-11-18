@@ -12,6 +12,11 @@ import 'package:flutter_scripter/lexer/lexer.dart';
 import 'package:flutter_scripter/machine/machine.dart';
 import 'package:flutter_scripter/machine/value.dart';
 import 'package:flutter_scripter/parser/parser.dart';
+import 'package:flutter_scripter/symbol_table/scoped_symbol_table.dart';
+import 'package:flutter_scripter/symbol_table/symbol.dart';
+import 'package:flutter_scripter/symbol_table/symbol_table.dart';
+import 'package:flutter_scripter/symbol_table/symbols/built_in_symbol.dart';
+import 'package:flutter_scripter/symbol_table/symbols/var_symbol.dart';
 import 'package:flutter_scripter/token/token_type.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -389,9 +394,22 @@ if (a < 5) {
   });
 }
 
+void test_symbol() {
+  test('test symbol table', () {
+    var st = SymbolTable(scopeName: 'GLOBAL', scopeLevel: 1);
+    var st2 = ScopedSymbolTable(enclosingScope: st, scopeName: 'script', scopeLevel: 2);
+    var varSymbol = st2.lookUp('var') ?? BuiltinTypeSymbol(name: 'var');
+
+    st2.insert(VarSymbol(name: 'a', type: varSymbol));
+
+    print(st2.toString());
+  });
+}
+
 void main() {
   test_lexer();
   test_parser();
   test_machine();
   test_scripter();
+  test_symbol();
 }

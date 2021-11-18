@@ -63,6 +63,7 @@ class Machine {
     if (node is CompoundNode) {
       return visitCompound(node);
     } else if (node is BlockCompoundNode){
+      return visitBlockCompound(node);
     } else if (node is AssignOpNode) {
       return visitAssignOp(node);
     } else if (node is IfNode) {
