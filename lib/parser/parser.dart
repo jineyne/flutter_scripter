@@ -5,6 +5,7 @@ import 'package:flutter_scripter/ast/expression/bool_op_node.dart';
 import 'package:flutter_scripter/ast/expression/boolean_node.dart';
 import 'package:flutter_scripter/ast/expression/compare_node.dart';
 import 'package:flutter_scripter/ast/expression/empty_op_node.dart';
+import 'package:flutter_scripter/ast/statement/block_compound_node.dart';
 import 'package:flutter_scripter/ast/statement/if_node.dart';
 import 'package:flutter_scripter/ast/expression/number_node.dart';
 import 'package:flutter_scripter/ast/expression/string_node.dart';
@@ -50,6 +51,7 @@ class Parser {
       case TokenType.If: return ifStatement();
       case TokenType.Identifier: return assignmentStatement();
       case TokenType.Variable: return varDeclStatement();
+      case TokenType.LeftBracket: return blockStatement();
       default: return CompoundNode(token: currentToken, children: []);
     }
   }
@@ -70,13 +72,13 @@ class Parser {
     return result;
   }
 
-  CompoundNode blockStatement() {
+  BlockCompoundNode blockStatement() {
     var token = currentToken;
     eat(TokenType.LeftBracket);
     var nodes = statementList();
     eat(TokenType.RightBracket);
 
-    return CompoundNode(token: token, children: nodes);
+    return BlockCompoundNode(token: token, children: nodes);
   }
 
   CompoundNode compoundStatement() {

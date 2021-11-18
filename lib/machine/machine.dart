@@ -8,6 +8,7 @@ import 'package:flutter_scripter/ast/expression/empty_op_node.dart';
 import 'package:flutter_scripter/ast/expression/number_node.dart';
 import 'package:flutter_scripter/ast/expression/string_node.dart';
 import 'package:flutter_scripter/ast/expression/unary_op_node.dart';
+import 'package:flutter_scripter/ast/statement/block_compound_node.dart';
 import 'package:flutter_scripter/ast/statement/if_node.dart';
 import 'package:flutter_scripter/ast/statement/var_decl_node.dart';
 import 'package:flutter_scripter/ast/expression/var_node.dart';
@@ -61,6 +62,7 @@ class Machine {
   Value visit(ASTNode node) {
     if (node is CompoundNode) {
       return visitCompound(node);
+    } else if (node is BlockCompoundNode){
     } else if (node is AssignOpNode) {
       return visitAssignOp(node);
     } else if (node is IfNode) {
@@ -279,6 +281,14 @@ class Machine {
     }
 
     return result;
+  }
+
+  Value visitBlockCompound(BlockCompoundNode block) {
+    for (var exp in block.children) {
+      visit(exp);
+    }
+
+    return NullValue();
   }
 
   Value visitIf(IfNode _if) {
