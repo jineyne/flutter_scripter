@@ -1,5 +1,5 @@
 import 'package:flutter_scripter/ast/ast_node.dart';
-import 'package:flutter_scripter/ast/statement/assign_op_node.dart';
+import 'package:flutter_scripter/ast/statement/assign_node.dart';
 import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bool_op_node.dart';
 import 'package:flutter_scripter/ast/expression/boolean_node.dart';
@@ -101,13 +101,13 @@ class Parser {
     return VarDeclNode(variable: id, token: token, initializer: initializer);
   }
 
-  AssignOpNode assignmentStatement() {
+  AssignNode assignmentStatement() {
     var left = variable();
     var token = currentToken;
     eat(TokenType.Assign);
     var right = expr();
 
-    return AssignOpNode(left: left, token: token, right: right);
+    return AssignNode(left: left, token: token, right: right);
   }
 
   IfNode ifStatement() {

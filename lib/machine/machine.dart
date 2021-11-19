@@ -1,5 +1,5 @@
 import 'package:flutter_scripter/ast/ast_node.dart';
-import 'package:flutter_scripter/ast/statement/assign_op_node.dart';
+import 'package:flutter_scripter/ast/statement/assign_node.dart';
 import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bool_op_node.dart';
 import 'package:flutter_scripter/ast/expression/boolean_node.dart';
@@ -64,8 +64,8 @@ class Machine {
       return visitCompound(node);
     } else if (node is BlockCompoundNode){
       return visitBlockCompound(node);
-    } else if (node is AssignOpNode) {
-      return visitAssignOp(node);
+    } else if (node is AssignNode) {
+      return visitAssign(node);
     } else if (node is IfNode) {
       return visitIf(node);
     } else if (node is BinOpNode) {
@@ -256,7 +256,7 @@ class Machine {
     return top.scope[varNode.id] ?? NullValue();
   }
 
-  Value visitAssignOp(AssignOpNode assignOp) {
+  Value visitAssign(AssignNode assignOp) {
     var right = visit(assignOp.right);
 
     if (assignOp.left is VarNode) {
