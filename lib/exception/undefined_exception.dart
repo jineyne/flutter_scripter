@@ -8,6 +8,6 @@ class UndefinedException implements Exception {
 
   @override
   String toString() {
-    return "'$id' is undefined at ${token.lineNo}:${token.pos}";
+    return "${token.lineNo}:${token.pos}: '$id' is undefined";
   }
 }

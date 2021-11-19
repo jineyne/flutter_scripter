@@ -7,6 +7,6 @@ class InvalidOperationException implements Exception {
 
   @override
   String toString() {
-    return "Invalid operation '$op' at ${op.lineNo}:${op.pos}";
+    return "${op.lineNo}:${op.pos}: Invalid operation '$op'";
   }
 }

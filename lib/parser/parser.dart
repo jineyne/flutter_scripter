@@ -83,7 +83,6 @@ class Parser {
 
   CompoundNode compoundStatement() {
     var token = currentToken;
-    // TODO: {} 확인하기
     var nodes = statementList();
 
     return CompoundNode(token: token, children: nodes);
@@ -122,7 +121,7 @@ class Parser {
     if (currentToken.type == TokenType.LeftBracket) {
       body = blockStatement();
     } else {
-      body = compoundStatement();
+      body = statement();
     }
 
     StatementNode? orElse;
@@ -131,7 +130,7 @@ class Parser {
       if (currentToken.type == TokenType.LeftBracket) {
         orElse = blockStatement();
       } else {
-        orElse = compoundStatement();
+        orElse = statement();
       }
     }
 

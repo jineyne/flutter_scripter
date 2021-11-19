@@ -7,6 +7,6 @@ class InvalidCastException implements Exception {
 
   @override
   String toString() {
-    return 'Invalid cast at ${token.lineNo}:${token.pos}';
+    return '${token.lineNo}:${token.pos}: Invalid cast' ;
   }
 }

@@ -7,6 +7,6 @@ class InvalidTokenException implements Exception {
 
   @override
   String toString() {
-    return "Invalid token '$token' at ${token.lineNo}:${token.pos}";
+    return "${token.lineNo}:${token.pos}: Invalid token '$token'";
   }
 }

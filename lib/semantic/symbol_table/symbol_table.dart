@@ -1,9 +1,9 @@
-import 'package:flutter_scripter/symbol_table/symbol.dart';
-import 'package:flutter_scripter/symbol_table/symbols/built_in_symbol.dart';
+import 'package:flutter_scripter/semantic/symbol_table/symbol.dart';
+import 'package:flutter_scripter/semantic/symbol_table/symbols/built_in_symbol.dart';
 import 'package:format/format.dart';
 
 class SymbolTable {
-  final symbols = <String, dynamic>{};
+  final symbols = <String, Symbol>{};
   final String scopeName;
   final int scopeLevel;
 
@@ -12,17 +12,16 @@ class SymbolTable {
 }
 
   void _initBuiltins() {
-    insert(BuiltinTypeSymbol(name: 'var'));
+    insert(BuiltinTypeSymbol(name: 'Boolean'));
+    insert(BuiltinTypeSymbol(name: 'Number'));
+    insert(BuiltinTypeSymbol(name: 'String'));
   }
 
   Symbol? lookUp(String name) {
-    print('LookUp: $name');
-
     return symbols[name];
   }
 
   void insert(Symbol symbol) {
-    print('Insert: ${symbol.name}');
     symbols[symbol.name] = symbol;
   }
 

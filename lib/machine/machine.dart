@@ -1,4 +1,5 @@
 import 'package:flutter_scripter/ast/ast_node.dart';
+import 'package:flutter_scripter/ast/ast_visitor.dart';
 import 'package:flutter_scripter/ast/statement/assign_node.dart';
 import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bool_op_node.dart';
@@ -13,9 +14,9 @@ import 'package:flutter_scripter/ast/statement/if_node.dart';
 import 'package:flutter_scripter/ast/statement/var_decl_node.dart';
 import 'package:flutter_scripter/ast/expression/var_node.dart';
 import 'package:flutter_scripter/ast/statement/compound_node.dart';
+import 'package:flutter_scripter/exception/already_defined_exception.dart';
 import 'package:flutter_scripter/exception/invalid_cast_exception.dart';
 import 'package:flutter_scripter/exception/invalid_operation_exception.dart';
-import 'package:flutter_scripter/exception/invalid_var_exception.dart';
 import 'package:flutter_scripter/exception/undefined_exception.dart';
 import 'package:flutter_scripter/exception/unsupported_exception.dart';
 import 'package:flutter_scripter/machine/stack_frame.dart';
@@ -24,7 +25,7 @@ import 'package:flutter_scripter/token/token.dart';
 import 'package:flutter_scripter/token/token_type.dart';
 import 'package:flutter_scripter/util/container/stack.dart';
 
-class Machine {
+class Machine extends ASTVisitor<Value> {
   var stackFrame = Stack<StackFrame>();
 
   Machine() {
@@ -57,41 +58,6 @@ class Machine {
     var scope = top.scope;
 
     scope[name] = value;
-  }
-
-  Value visit(ASTNode node) {
-    if (node is CompoundNode) {
-      return visitCompound(node);
-    } else if (node is BlockCompoundNode){
-      return visitBlockCompound(node);
-    } else if (node is AssignNode) {
-      return visitAssign(node);
-    } else if (node is IfNode) {
-      return visitIf(node);
-    } else if (node is BinOpNode) {
-      return visitBinOp(node);
-    } else if (node is BoolOpNode) {
-      return visitBoolOp(node);
-    } else if (node is CompareNode) {
-      return visitCompare(node);
-    } else if (node is BooleanNode) {
-      return visitBoolean(node);
-    } else if (node is NumberNode) {
-      return visitNumber(node);
-    } else if (node is StringNode) {
-      return visitString(node);
-    } else if (node is UnaryOpNode) {
-      return visitUnaryOp(node);
-    } else if (node is VarDeclNode) {
-      return visitVarDecl(node);
-    } else if (node is VarNode) {
-      return visitVar(node);
-    } else if (node is EmptyOpNode) {
-      return visitEmptyOp(node);
-    }
-
-    throw UnSupportedException(node.token);
-    return NullValue();
   }
 
   Value visitBoolean(BooleanNode boolean) {
@@ -240,7 +206,7 @@ class Machine {
     var initializer = varDecl.initializer;
 
     if (top.scope.containsKey(variable.id)) {
-      throw InvalidVarException(variable);
+      throw AlreadyDefinedException(varDecl.token, variable.id);
     }
 
     return (top.scope[variable.id] = visit(initializer));
@@ -306,7 +272,8 @@ class Machine {
     }
   }
 
-  Value visitEmptyOp(EmptyOpNode emptyOp) {
+  @override
+  Value returnNull() {
     return NullValue();
   }
 }

@@ -7,6 +7,6 @@ class UnSupportedException implements Exception {
 
   @override
   String toString() {
-    return "'$token' is unsupported at ${token.lineNo}:${token.pos}";
+    return "${token.lineNo}:${token.pos}: '$token' is unsupported";
   }
 }

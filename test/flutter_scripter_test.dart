@@ -4,19 +4,20 @@ import 'package:flutter_scripter/ast/expression/unary_op_node.dart';
 import 'package:flutter_scripter/ast/statement/if_node.dart';
 import 'package:flutter_scripter/ast/statement/var_decl_node.dart';
 import 'package:flutter_scripter/ast/statement/compound_node.dart';
+import 'package:flutter_scripter/exception/already_defined_exception.dart';
 import 'package:flutter_scripter/exception/invalid_cast_exception.dart';
 import 'package:flutter_scripter/exception/invalid_token_exception.dart';
-import 'package:flutter_scripter/exception/invalid_var_exception.dart';
+import 'package:flutter_scripter/exception/undefined_exception.dart';
 import 'package:flutter_scripter/flutter_scripter.dart';
 import 'package:flutter_scripter/lexer/lexer.dart';
 import 'package:flutter_scripter/machine/machine.dart';
 import 'package:flutter_scripter/machine/value.dart';
 import 'package:flutter_scripter/parser/parser.dart';
-import 'package:flutter_scripter/symbol_table/scoped_symbol_table.dart';
-import 'package:flutter_scripter/symbol_table/symbol.dart';
-import 'package:flutter_scripter/symbol_table/symbol_table.dart';
-import 'package:flutter_scripter/symbol_table/symbols/built_in_symbol.dart';
-import 'package:flutter_scripter/symbol_table/symbols/var_symbol.dart';
+import 'package:flutter_scripter/semantic/semantic_analyzer.dart';
+import 'package:flutter_scripter/semantic/symbol_table/scoped_symbol_table.dart';
+import 'package:flutter_scripter/semantic/symbol_table/symbol_table.dart';
+import 'package:flutter_scripter/semantic/symbol_table/symbols/built_in_symbol.dart';
+import 'package:flutter_scripter/semantic/symbol_table/symbols/var_symbol.dart';
 import 'package:flutter_scripter/token/token_type.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -152,7 +153,7 @@ if (a == 10) b = 30
     expect(root is CompoundNode, true);
 
     var compound = root as CompoundNode;
-    expect(compound.children.length, 3);
+    expect(compound.children.length, 4);
 
     expect(compound.children[0] is VarDeclNode, true);
     expect(compound.children[1] is VarDeclNode, true);
@@ -274,7 +275,7 @@ var a = false
     expect(root is CompoundNode, true);
 
     var machine = Machine();
-    expect(() => machine.visit(root), throwsA(isA<InvalidVarException>()));
+    expect(() => machine.visit(root), throwsA(isA<AlreadyDefinedException>()));
   });
 
   test('test machine for invalid cast excpetion', () {
@@ -395,14 +396,35 @@ if (a < 5) {
 }
 
 void test_symbol() {
-  test('test symbol table', () {
-    var st = SymbolTable(scopeName: 'GLOBAL', scopeLevel: 1);
-    var st2 = ScopedSymbolTable(enclosingScope: st, scopeName: 'script', scopeLevel: 2);
-    var varSymbol = st2.lookUp('var') ?? BuiltinTypeSymbol(name: 'var');
+  test('test symbol table #1', () {
+    var lexer = Lexer(text: '''
+var a = 10
+var b = 0
+if (a == 10) {
+  b = 10
+} else var c = false
+''');
+    var parser = Parser(lexer);
+    var root = parser.parse();
 
-    st2.insert(VarSymbol(name: 'a', type: varSymbol));
+    var analyzer = SemanticAnalyzer();
+    var result = analyzer.visit(root);
+  });
 
-    print(st2.toString());
+  test('test symbol table #1', () {
+    var lexer = Lexer(text: '''
+var a = 10
+var b = 0
+if (a == 10) {
+  b = 10
+} else var c = false
+c = true
+''');
+    var parser = Parser(lexer);
+    var root = parser.parse();
+
+    var analyzer = SemanticAnalyzer();
+    expect(() => analyzer.visit(root), throwsA(isA<UndefinedException>()));
   });
 }
 
