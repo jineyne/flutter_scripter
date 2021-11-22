@@ -1,12 +1,11 @@
+import 'package:flutter_scripter/exception/scripter_exception.dart';
 import 'package:flutter_scripter/token/token.dart';
 
-class UnSupportedException implements Exception {
-  Token token;
-
-  UnSupportedException(this.token);
+class UnSupportedException extends ScripterException {
+  UnSupportedException(Token token) : super(token);
 
   @override
   String toString() {
-    return "${token.lineNo}:${token.pos}: '$token' is unsupported";
+    return "$lineNo:$pos: '$token' is unsupported";
   }
 }

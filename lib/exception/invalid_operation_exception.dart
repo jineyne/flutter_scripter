@@ -1,12 +1,11 @@
+import 'package:flutter_scripter/exception/scripter_exception.dart';
 import 'package:flutter_scripter/token/token.dart';
 
-class InvalidOperationException implements Exception {
-  Token op;
-
-  InvalidOperationException(this.op);
+class InvalidOperationException extends ScripterException {
+  InvalidOperationException(Token token) : super(token);
 
   @override
   String toString() {
-    return "${op.lineNo}:${op.pos}: Invalid operation '$op'";
+    return "$lineNo:$pos: Invalid operation '$token'";
   }
 }

@@ -1,13 +1,13 @@
+import 'package:flutter_scripter/exception/scripter_exception.dart';
 import 'package:flutter_scripter/token/token.dart';
 
-class UndefinedException implements Exception {
-  Token token;
+class UndefinedException extends ScripterException {
   String id;
 
-  UndefinedException(this.token, this.id);
+  UndefinedException(Token token, this.id) : super(token);
 
   @override
   String toString() {
-    return "${token.lineNo}:${token.pos}: '$id' is undefined";
+    return "$lineNo:$pos: '$id' is undefined";
   }
 }

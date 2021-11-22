@@ -1,12 +1,11 @@
+import 'package:flutter_scripter/exception/scripter_exception.dart';
 import 'package:flutter_scripter/token/token.dart';
 
-class InvalidCastException implements Exception {
-  Token token;
-
-  InvalidCastException(this.token);
+class InvalidCastException extends ScripterException {
+  InvalidCastException(Token token) : super(token);
 
   @override
   String toString() {
-    return '${token.lineNo}:${token.pos}: Invalid cast' ;
+    return '$lineNo:$pos: Invalid cast';
   }
 }

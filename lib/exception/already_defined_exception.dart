@@ -1,13 +1,13 @@
+import 'package:flutter_scripter/exception/scripter_exception.dart';
 import 'package:flutter_scripter/token/token.dart';
 
-class AlreadyDefinedException implements Exception {
-  Token token;
+class AlreadyDefinedException extends ScripterException {
   String id;
 
-  AlreadyDefinedException(this.token, this.id);
+  AlreadyDefinedException(Token token, this.id) : super(token);
 
   @override
   String toString() {
-    return "${token.lineNo}:${token.pos}: '$id' is already defined";
+    return "lineNo:$pos: '$id' is already defined";
   }
 }
