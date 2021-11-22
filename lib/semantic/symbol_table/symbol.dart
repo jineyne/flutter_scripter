@@ -1,6 +1,7 @@
 enum SymbolType {
   Var,
   Function,
+  Procedure,
   Unknown,
 }
 
