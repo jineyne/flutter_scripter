@@ -31,7 +31,7 @@ class Parser {
 
   ASTNode parse() {
     errorBuffer.clear();
-    return compoundStatement();
+    return ScriptNode(compound: compoundStatement());
   }
 
   void error(String error) {

@@ -9,6 +9,7 @@ import 'package:flutter_scripter/ast/expression/number_node.dart';
 import 'package:flutter_scripter/ast/expression/string_node.dart';
 import 'package:flutter_scripter/ast/expression/unary_op_node.dart';
 import 'package:flutter_scripter/ast/expression/var_node.dart';
+import 'package:flutter_scripter/ast/script_node.dart';
 import 'package:flutter_scripter/ast/statement/assign_node.dart';
 import 'package:flutter_scripter/ast/statement/block_compound_node.dart';
 import 'package:flutter_scripter/ast/statement/compound_node.dart';
@@ -51,6 +52,8 @@ abstract class ASTVisitor<T> {
       return visitVar(node);
     } else if (node is EmptyOpNode) {
       return visitEmptyOp(node);
+    } else if (node is ScriptNode) {
+      return visitScriptNode(node);
     }
 
     throw UnSupportedException(node.token);
@@ -83,7 +86,10 @@ abstract class ASTVisitor<T> {
   T visitUnaryOp(UnaryOpNode node);
   T visitVar(VarNode node);
 
+  T visitScriptNode(ScriptNode node);
+
   T visitEmptyOp(EmptyOpNode node) {
     return returnNull();
   }
+
 }
