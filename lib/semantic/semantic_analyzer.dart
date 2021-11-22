@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_scripter/ast/ast_node.dart';
 import 'package:flutter_scripter/ast/ast_visitor.dart';
 import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
@@ -10,19 +11,24 @@ import 'package:flutter_scripter/ast/expression/number_node.dart';
 import 'package:flutter_scripter/ast/expression/string_node.dart';
 import 'package:flutter_scripter/ast/expression/unary_op_node.dart';
 import 'package:flutter_scripter/ast/expression/var_node.dart';
+import 'package:flutter_scripter/ast/script_node.dart';
 import 'package:flutter_scripter/ast/statement/assign_node.dart';
 import 'package:flutter_scripter/ast/statement/block_compound_node.dart';
 import 'package:flutter_scripter/ast/statement/compound_node.dart';
 import 'package:flutter_scripter/ast/statement/expr_statement_node.dart';
 import 'package:flutter_scripter/ast/statement/if_node.dart';
+import 'package:flutter_scripter/ast/statement/procedure_call_node.dart';
 import 'package:flutter_scripter/ast/statement/var_decl_node.dart';
 import 'package:flutter_scripter/exception/already_defined_exception.dart';
+import 'package:flutter_scripter/exception/invalid_function_argument_exception.dart';
 import 'package:flutter_scripter/exception/invalid_symbol_exception.dart';
 import 'package:flutter_scripter/exception/undefined_exception.dart';
-import 'package:flutter_scripter/machine/stack_frame.dart';
+import 'package:flutter_scripter/machine/value.dart';
 import 'package:flutter_scripter/semantic/symbol_table/scoped_symbol_table.dart';
+import 'package:flutter_scripter/semantic/symbol_table/symbol.dart';
 import 'package:flutter_scripter/semantic/symbol_table/symbol_table.dart';
 import 'package:flutter_scripter/semantic/symbol_table/symbols/function_symbol.dart';
+import 'package:flutter_scripter/semantic/symbol_table/symbols/procedure_symbol.dart';
 import 'package:flutter_scripter/semantic/symbol_table/symbols/var_symbol.dart';
 import 'package:flutter_scripter/token/token.dart';
 
@@ -30,10 +36,26 @@ class SemanticAnalyzer extends ASTVisitor<void> {
   var symtab = SymbolTable(scopeName: 'GLOBAL', scopeLevel: 1);
   var debugMode = false;
 
-  void applyStackFrame(StackFrame frame) {
+  void apply(Map<String, Value> scope) {
     late SymbolTable tbl;
 
+    // TODO:
+    scope.forEach((key, value) {
+      if (value is NumberValue || value is StringValue || value is BooleanValue) {
+        symtab.insert(VarSymbol(key));
+        return;
+      }
 
+      if (value is ExternalFunctionValue) {
+        symtab.insert(FunctionSymbol(key, value.argc));
+        return;
+      }
+
+      if (value is ExternalProcedureValue) {
+        symtab.insert(ProcedureSymbol(key, value.argc));
+        return;
+      }
+    });
   }
 
   @override
@@ -132,7 +154,7 @@ class SemanticAnalyzer extends ASTVisitor<void> {
     }
 
     var expr = visit(node.initializer);
-    var varSymbol = VarSymbol(name: varName);
+    var varSymbol = VarSymbol(varName);
 
     symtab.insert(varSymbol);
   }
@@ -158,13 +180,38 @@ class SemanticAnalyzer extends ASTVisitor<void> {
   @override
   void visitFunctionCall(FunctionCallNode node) {
     var symbol = symtab.lookUp(node.func);
-    if ((symbol == null) || !(symbol is! FunctionSymbol)) {
+    if ((symbol == null) || symbol is! FunctionSymbol) {
       throw UndefinedException(node.token, node.func);
+    }
+
+    if (node.args.length > symbol.argc) {
+      throw InvalidFunctionArgumentsException.many(node.token);
+    } else if (node.args.length < symbol.argc) {
+      throw InvalidFunctionArgumentsException.few(node.token);
     }
   }
 
   @override
   void visitExprStatement(ExprStatementNode node) {
     visit(node.expr);
+  }
+
+  @override
+  void visitScriptNode(ScriptNode node) {
+    visit(node.compound);
+  }
+
+  @override
+  void visitProcedureCall(ProcedureCallNode node) {
+    var symbol = symtab.lookUp(node.func);
+    if ((symbol == null) || symbol is! ProcedureSymbol) {
+      throw UndefinedException(node.token, node.func);
+    }
+
+    if (node.args.length > symbol.argc) {
+      throw InvalidFunctionArgumentsException.many(node.token);
+    } else if (node.args.length < symbol.argc) {
+      throw InvalidFunctionArgumentsException.few(node.token);
+    }
   }
 }
