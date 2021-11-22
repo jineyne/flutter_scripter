@@ -1,7 +1,7 @@
 import 'package:flutter_scripter/semantic/symbol_table/symbol.dart';
 
 class VarSymbol extends Symbol {
-  VarSymbol({required String name})
+  VarSymbol(String name)
       : super(name: name, type: SymbolType.Var);
 
   @override

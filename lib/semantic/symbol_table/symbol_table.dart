@@ -12,9 +12,9 @@ class SymbolTable {
 }
 
   void _initBuiltins() {
-    insert(BuiltinTypeSymbol(name: 'Boolean'));
-    insert(BuiltinTypeSymbol(name: 'Number'));
-    insert(BuiltinTypeSymbol(name: 'String'));
+    insert(BuiltinTypeSymbol('Boolean'));
+    insert(BuiltinTypeSymbol('Number'));
+    insert(BuiltinTypeSymbol('String'));
   }
 
   Symbol? lookUp(String name) {
