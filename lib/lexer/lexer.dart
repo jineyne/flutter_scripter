@@ -15,26 +15,26 @@ class Lexer {
 
   String text;
   String currentChar;
-  int pos = 0;
+  int textPos = 0;
 
   int lineNo = 1;
-  int cursorPos = 1;
+  int linePos = 1;
 
   Lexer({required this.text}) : currentChar = text[0];
 
   void advance() {
-    pos += 1;
-    cursorPos += 1;
+    textPos += 1;
+    linePos += 1;
 
-    if (pos >= text.length) {
+    if (textPos >= text.length) {
       currentChar = '';
     } else {
-      currentChar = text[pos];
+      currentChar = text[textPos];
     }
   }
 
   String peek() {
-    var peekPos = pos + 1;
+    var peekPos = textPos + 1;
     if (peekPos >= text.length) {
       return  '';
     } else {
@@ -50,6 +50,7 @@ class Lexer {
 
   Token identifier() {
     var sb = StringBuffer();
+    var index = linePos;
 
     while (currentChar != '' && (currentChar.isAlphaOrDigit() || currentChar == '_')) {
       sb.write(currentChar);
@@ -58,10 +59,10 @@ class Lexer {
 
     var id = sb.toString();
     if (keyword.containsKey(id)) {
-      return Token.keyword(keyword[id] ?? TokenType.EOF, id, lineNo, pos);
+      return Token.keyword(keyword[id] ?? TokenType.EOF, id, lineNo, index);
     }
 
-    return Token.identifier(id, lineNo, pos);
+    return Token.identifier(id, lineNo, index);
   }
 
   Token number() {
@@ -72,7 +73,7 @@ class Lexer {
       advance();
     }
     
-    return Token.number(double.parse(sb.toString()), lineNo, cursorPos);
+    return Token.number(double.parse(sb.toString()), lineNo, linePos);
   }
 
   Token string() {
@@ -89,7 +90,7 @@ class Lexer {
     // skip "
     advance();
 
-    return Token.string(sb.toString(), lineNo, cursorPos);
+    return Token.string(sb.toString(), lineNo, linePos);
   }
 
   Token getNextToken() {
@@ -98,10 +99,10 @@ class Lexer {
         if (currentChar != '\n') {
           skipWhitespace();
         } else {
-          var token = Token(TokenType.EOL, lineNo, cursorPos);
-
           lineNo += 1;
-          cursorPos = 0;
+          linePos = 1;
+
+          var token = Token(TokenType.EOL, lineNo, linePos);
 
           advance();
           return token;
@@ -262,13 +263,13 @@ class Lexer {
         return token;
       }
 
-      throw InvalidTokenException(Token.unknown(currentChar, lineNo, pos));
+      throw InvalidTokenException(Token.unknown(currentChar, lineNo, textPos));
     }
 
     return makeToken(TokenType.EOF);
   }
 
   Token makeToken(TokenType type) {
-    return Token(type, lineNo, cursorPos);
+    return Token(type, lineNo, linePos);
   }
 }
