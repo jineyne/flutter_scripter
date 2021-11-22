@@ -263,7 +263,7 @@ class Lexer {
         return token;
       }
 
-      throw InvalidTokenException(Token.unknown(currentChar, lineNo, textPos));
+      throw InvalidTokenException(Token.unknown(currentChar, lineNo, linePos));
     }
 
     return makeToken(TokenType.EOF);
