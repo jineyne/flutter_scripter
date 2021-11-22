@@ -1,11 +1,11 @@
 import 'package:flutter_scripter/semantic/symbol_table/symbol.dart';
 
 class VarSymbol extends Symbol {
-  VarSymbol({required String name, required Symbol type})
-      : super(name: name, type: type);
+  VarSymbol({required String name})
+      : super(name: name, type: SymbolType.Var);
 
   @override
   String toString() {
-    return 'VarSymbol($name, $type)';
+    return 'VarSymbol($name)';
   }
 }

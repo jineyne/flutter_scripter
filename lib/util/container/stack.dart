@@ -8,7 +8,7 @@ class Stack<T> {
     data.add(raw);
   }
 
-  void pop() {
-    data.removeLast();
+  T pop() {
+    return data.removeLast();
   }
 }
