@@ -28,6 +28,8 @@ enum TokenType {
   LeftBracket,
   RightBracket,
 
+  Comma,
+
   Number,
   String,
   Boolean,

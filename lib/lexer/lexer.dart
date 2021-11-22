@@ -255,6 +255,13 @@ class Lexer {
         return token;
       }
 
+      if (currentChar == ',') {
+        var token = makeToken(TokenType.Comma);
+        advance();
+
+        return token;
+      }
+
       throw InvalidTokenException(Token.unknown(currentChar, lineNo, pos));
     }
 
