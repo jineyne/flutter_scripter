@@ -1,5 +1,7 @@
 import 'package:flutter_scripter/ast/ast_node.dart';
 import 'package:flutter_scripter/ast/ast_visitor.dart';
+import 'package:flutter_scripter/ast/expression/function_call_node.dart';
+import 'package:flutter_scripter/ast/script_node.dart';
 import 'package:flutter_scripter/ast/statement/assign_node.dart';
 import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bool_op_node.dart';
@@ -10,15 +12,20 @@ import 'package:flutter_scripter/ast/expression/number_node.dart';
 import 'package:flutter_scripter/ast/expression/string_node.dart';
 import 'package:flutter_scripter/ast/expression/unary_op_node.dart';
 import 'package:flutter_scripter/ast/statement/block_compound_node.dart';
+import 'package:flutter_scripter/ast/statement/expr_statement_node.dart';
 import 'package:flutter_scripter/ast/statement/if_node.dart';
+import 'package:flutter_scripter/ast/statement/procedure_call_node.dart';
 import 'package:flutter_scripter/ast/statement/var_decl_node.dart';
 import 'package:flutter_scripter/ast/expression/var_node.dart';
 import 'package:flutter_scripter/ast/statement/compound_node.dart';
 import 'package:flutter_scripter/exception/already_defined_exception.dart';
 import 'package:flutter_scripter/exception/invalid_cast_exception.dart';
 import 'package:flutter_scripter/exception/invalid_operation_exception.dart';
+import 'package:flutter_scripter/exception/invalid_token_exception.dart';
 import 'package:flutter_scripter/exception/undefined_exception.dart';
 import 'package:flutter_scripter/exception/unsupported_exception.dart';
+import 'package:flutter_scripter/machine/activation_record.dart';
+import 'package:flutter_scripter/machine/callstack.dart';
 import 'package:flutter_scripter/machine/stack_frame.dart';
 import 'package:flutter_scripter/machine/value.dart';
 import 'package:flutter_scripter/token/token.dart';
@@ -26,10 +33,18 @@ import 'package:flutter_scripter/token/token_type.dart';
 import 'package:flutter_scripter/util/container/stack.dart';
 
 class Machine extends ASTVisitor<Value> {
-  var stackFrame = Stack<StackFrame>();
+  var callstack = CallStack();
+  var globalScope = <String, Value>{};
+
+  var debugMode = false;
 
   Machine() {
-    stackFrame.push(StackFrame());
+  }
+
+  void log(String text) {
+    if (debugMode) {
+      print(text);
+    }
   }
 
   Value run(ASTNode root) {
@@ -43,21 +58,33 @@ class Machine extends ASTVisitor<Value> {
   }
 
   Value getVariable(String name) {
-    var top = stackFrame.top;
-    var scope = top.scope;
-
-    if (!scope.containsKey(name)) {
+    if (!globalScope.containsKey(name)) {
       throw ArgumentError("'$name' is not variable");
     }
 
-    return scope[name] ?? NullValue();
+    return globalScope[name] ?? NullValue();
   }
 
   void setVariable(String name, Value value) {
-    var top = stackFrame.top;
-    var scope = top.scope;
+    globalScope[name] = value;
+  }
 
-    scope[name] = value;
+  /// set dart function to scripter.
+  ///
+  /// @param name function name
+  /// @param func function callback
+  /// @param argc function argument count
+  void setExternalFunction(String name, ScriptFunctionType func, int argc) {
+    globalScope[name] = ExternalFunctionValue(func, argc);
+  }
+
+  /// set dart procedure to scripter.
+  ///
+  /// @param name function name
+  /// @param func function callback
+  /// @param argc function argument count
+  void setExternalProcedure(String name, ScriptProcedureType func, int argc) {
+    globalScope[name] = ExternalProcedureValue(func, argc);
   }
 
   Value visitBoolean(BooleanNode boolean) {
@@ -201,37 +228,61 @@ class Machine extends ASTVisitor<Value> {
   }
 
   Value visitVarDecl(VarDeclNode varDecl) {
-    var top = stackFrame.top;
     var variable = varDecl.variable as VarNode;
-    var initializer = varDecl.initializer;
+    var value = visit(varDecl.initializer);
 
-    if (top.scope.containsKey(variable.id)) {
+    var ar = callstack.top;
+    if (ar != null) {
+      if (ar.containsKey(variable.id)) {
+        throw AlreadyDefinedException(varDecl.token, variable.id);
+      }
+
+      ar.set(variable.id, value);
+      return value;
+    }
+
+    if (globalScope.containsKey(variable.id)) {
       throw AlreadyDefinedException(varDecl.token, variable.id);
     }
 
-    return (top.scope[variable.id] = visit(initializer));
+    globalScope[variable.id] = value;
+    return value;
   }
 
   Value visitVar(VarNode varNode) {
-    var top = stackFrame.top;
-    if (!top.scope.containsKey(varNode.id)) {
-      throw UndefinedException(varNode.op, varNode.id);
-      return NullValue();
+    var name = varNode.id;
+
+    var ar = callstack.top;
+    if (ar != null) {
+      if (ar.containsKey(name)) {
+        return ar.get(name);
+      }
     }
 
-    return top.scope[varNode.id] ?? NullValue();
+    if (globalScope.containsKey(name)) {
+      return globalScope[name] ?? NullValue();
+    } else {
+      throw UndefinedException(varNode.token, name);
+    }
   }
 
   Value visitAssign(AssignNode assignOp) {
     var right = visit(assignOp.right);
+    var ar = callstack.top;
 
-    if (assignOp.left is VarNode) {
-      var variable = assignOp.left as VarNode;
-      var top = stackFrame.top;
-      top.scope[variable.id] = right;
+    if (!(assignOp.left is VarNode)) {
+      // TODO:
+      throw InvalidTokenException(assignOp.left.token);
     }
 
-    return NullValue();
+    var variable = assignOp.left as VarNode;
+    if (ar != null) {
+      ar.set(variable.id, right);
+      return right;
+    }
+
+    globalScope[variable.id] = right;
+    return right;
   }
 
   Value visitCompound(CompoundNode compound) {
@@ -274,6 +325,111 @@ class Machine extends ASTVisitor<Value> {
 
   @override
   Value returnNull() {
+    return NullValue();
+  }
+
+  @override
+  Value visitFunctionCall(FunctionCallNode node) {
+    var name = node.func;
+    late Value value;
+
+    var ar = callstack.top;
+    if (ar != null) {
+      if (ar.containsKey(name)) {
+        value = ar.get(name);
+      }
+    }
+
+    if (globalScope.containsKey(name)) {
+      value = globalScope[name] ?? NullValue();
+    }
+
+    if (value == null) {
+      throw UndefinedException(node.token, name);
+    }
+
+    if (!(value is FunctionValue)) {
+      throw UndefinedException(node.token, name);
+    }
+
+    var function = value as FunctionValue;
+
+    var args = <Value>[];
+    node.args.forEach((arg) {
+      args.add(visit(arg));
+    });
+
+    ar = ActivationRecord(name: name, type: ActivationRecordType.Procedure, nestingLevel: ar != null ? ar.nestingLevel : 1);
+    callstack.push(ar);
+
+    // TODO: set args to ar
+
+    var result = function.call(args);
+
+    ar = callstack.pop();
+    log(ar.toString());
+
+    return result;
+  }
+
+  @override
+  Value visitExprStatement(ExprStatementNode node) {
+    return visit(node.expr);
+  }
+
+  @override
+  Value visitScriptNode(ScriptNode node) {
+    // var ar = ActivationRecord(name: node.name, type: ActivationRecordType.Script, nestingLevel: 1);
+    // callstack.push(ar);
+
+    return visit(node.compound);
+
+    // ar = callstack.pop();
+    // log(ar.toString());
+
+  }
+
+  @override
+  Value visitProcedureCall(ProcedureCallNode node) {
+    var name = node.func;
+    late Value value;
+
+    var ar = callstack.top;
+    if (ar != null) {
+      if (ar.containsKey(name)) {
+        value = ar.get(name);
+      }
+    }
+
+    if (globalScope.containsKey(name)) {
+      value = globalScope[name] ?? NullValue();
+    }
+
+    if (value == null) {
+      throw UndefinedException(node.token, name);
+    }
+
+    if (!(value is ProcedureValue)) {
+      throw UndefinedException(node.token, name);
+    }
+
+    var function = value as ProcedureValue;
+
+    var args = <Value>[];
+    node.args.forEach((arg) {
+      args.add(visit(arg));
+    });
+
+    ar = ActivationRecord(name: name, type: ActivationRecordType.Procedure, nestingLevel: ar != null ? ar.nestingLevel : 1);
+    callstack.push(ar);
+
+    // TODO: set args to ar
+
+    function.call(args);
+
+    ar = callstack.pop();
+    log(ar.toString());
+
     return NullValue();
   }
 }
