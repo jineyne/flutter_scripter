@@ -1,4 +1,7 @@
 import 'package:flutter_scripter/ast/ast_node.dart';
+import 'package:flutter_scripter/ast/script_node.dart';
+import 'package:flutter_scripter/ast/statement/expr_statement_node.dart';
+import 'package:flutter_scripter/ast/expression/function_call_node.dart';
 import 'package:flutter_scripter/ast/statement/assign_node.dart';
 import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
 import 'package:flutter_scripter/ast/expression/bool_op_node.dart';
@@ -10,6 +13,7 @@ import 'package:flutter_scripter/ast/statement/if_node.dart';
 import 'package:flutter_scripter/ast/expression/number_node.dart';
 import 'package:flutter_scripter/ast/expression/string_node.dart';
 import 'package:flutter_scripter/ast/expression/unary_op_node.dart';
+import 'package:flutter_scripter/ast/statement/procedure_call_node.dart';
 import 'package:flutter_scripter/ast/statement/var_decl_node.dart';
 import 'package:flutter_scripter/ast/expression/var_node.dart';
 import 'package:flutter_scripter/ast/expression_node.dart';
@@ -49,7 +53,12 @@ class Parser {
   StatementNode statement() {
     switch (currentToken.type) {
       case TokenType.If: return ifStatement();
-      case TokenType.Identifier: return assignmentStatement();
+      case TokenType.Identifier:
+        if (lexer.currentChar == '(') {
+          return procedureCall();
+        } else {
+          return assignmentStatement();
+        }
       case TokenType.Variable: return varDeclStatement();
       case TokenType.LeftBracket: return blockStatement();
       default: return CompoundNode(token: currentToken, children: []);
@@ -98,6 +107,46 @@ class Parser {
     var initializer = expr();
 
     return VarDeclNode(variable: id, token: token, initializer: initializer);
+  }
+
+  ProcedureCallNode procedureCall() {
+    var token = currentToken;
+    var funcName = token.value as String;
+    eat(TokenType.Identifier);
+    eat(TokenType.LeftParen);
+    var args = <ExpressionNode>[];
+    if (currentToken.type != TokenType.RightParen) {
+      args.add(expr());
+    }
+
+    while (currentToken.type == TokenType.Comma) {
+      eat(TokenType.Comma);
+      args.add(expr());
+    }
+
+    eat(TokenType.RightParen);
+
+    return ProcedureCallNode(token: token, func: funcName, args: args);
+  }
+
+  FunctionCallNode functionCall() {
+    var token = currentToken;
+    var funcName = token.value as String;
+    eat(TokenType.Identifier);
+    eat(TokenType.LeftParen);
+    var args = <ExpressionNode>[];
+    if (currentToken.type != TokenType.RightParen) {
+      args.add(expr());
+    }
+    
+    while (currentToken.type == TokenType.Comma) {
+      eat(TokenType.Comma);
+      args.add(expr());
+    }
+
+    eat(TokenType.RightParen);
+
+    return FunctionCallNode(token: token, func: funcName, args: args);
   }
 
   AssignNode assignmentStatement() {
@@ -167,7 +216,11 @@ class Parser {
         return node;
 
       case TokenType.Identifier:
-        return variable();
+        if (lexer.currentChar == '(') {
+          return functionCall();
+        } else {
+          return variable();
+        }
 
       default:
         return empty();

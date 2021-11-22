@@ -15,6 +15,7 @@ import 'package:flutter_scripter/ast/statement/block_compound_node.dart';
 import 'package:flutter_scripter/ast/statement/compound_node.dart';
 import 'package:flutter_scripter/ast/statement/expr_statement_node.dart';
 import 'package:flutter_scripter/ast/statement/if_node.dart';
+import 'package:flutter_scripter/ast/statement/procedure_call_node.dart';
 import 'package:flutter_scripter/ast/statement/var_decl_node.dart';
 import 'package:flutter_scripter/exception/unsupported_exception.dart';
 
@@ -54,6 +55,8 @@ abstract class ASTVisitor<T> {
       return visitEmptyOp(node);
     } else if (node is ScriptNode) {
       return visitScriptNode(node);
+    } else if (node is ProcedureCallNode) {
+      return visitProcedureCall(node);
     }
 
     throw UnSupportedException(node.token);
@@ -71,6 +74,7 @@ abstract class ASTVisitor<T> {
   T visitVarDecl(VarDeclNode node);
   T visitIf(IfNode node);
   T visitExprStatement(ExprStatementNode node);
+  T visitProcedureCall(ProcedureCallNode node);
 
 
   /////////////////////////
