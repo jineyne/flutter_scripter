@@ -1,6 +1,7 @@
 import 'package:flutter_scripter/ast/expression/bin_op_node.dart';
 import 'package:flutter_scripter/ast/expression/number_node.dart';
 import 'package:flutter_scripter/ast/expression/unary_op_node.dart';
+import 'package:flutter_scripter/ast/script_node.dart';
 import 'package:flutter_scripter/ast/statement/if_node.dart';
 import 'package:flutter_scripter/ast/statement/var_decl_node.dart';
 import 'package:flutter_scripter/ast/statement/compound_node.dart';
@@ -10,6 +11,8 @@ import 'package:flutter_scripter/exception/invalid_token_exception.dart';
 import 'package:flutter_scripter/exception/undefined_exception.dart';
 import 'package:flutter_scripter/flutter_scripter.dart';
 import 'package:flutter_scripter/lexer/lexer.dart';
+import 'package:flutter_scripter/machine/activation_record.dart';
+import 'package:flutter_scripter/machine/callstack.dart';
 import 'package:flutter_scripter/machine/machine.dart';
 import 'package:flutter_scripter/machine/value.dart';
 import 'package:flutter_scripter/parser/parser.dart';
@@ -130,12 +133,30 @@ var b = 2 + a
     var parser = Parser(lexer);
     var root = parser.parse();
     expect(parser.isError, false);
+    expect(root is ScriptNode, true);
 
-    expect(root is CompoundNode, true);
-
-    var compound = root as CompoundNode;
+    var script = root as ScriptNode;
+    var compound = script.compound;
     expect(compound.children.length, 3);
 
+    expect(compound.children[0] is VarDeclNode, true);
+    expect(compound.children[1] is VarDeclNode, true);
+  });
+
+  test('test parser #5', () {
+    var lexer = Lexer(text: '''
+var a = 5 + 1
+var b = 2 + sin(a)
+cos(b)
+''');
+    var parser = Parser(lexer);
+    var root = parser.parse();
+    expect(parser.isError, false);
+    expect(root is ScriptNode, true);
+
+    var script = root as ScriptNode;
+    var compound = script.compound;
+    expect(compound.children.length, 4);
     expect(compound.children[0] is VarDeclNode, true);
     expect(compound.children[1] is VarDeclNode, true);
   });
@@ -149,12 +170,11 @@ if (a == 10) b = 30
     var parser = Parser(lexer);
     var root = parser.parse();
     expect(parser.isError, false);
+    expect(root is ScriptNode, true);
 
-    expect(root is CompoundNode, true);
-
-    var compound = root as CompoundNode;
+    var script = root as ScriptNode;
+    var compound = script.compound;
     expect(compound.children.length, 4);
-
     expect(compound.children[0] is VarDeclNode, true);
     expect(compound.children[1] is VarDeclNode, true);
     expect(compound.children[2] is IfNode, true);
@@ -212,18 +232,17 @@ var d = true
 ''');
     var parser = Parser(lexer);
     var root = parser.parse();
-
-    expect(root is CompoundNode, true);
+    expect(root is ScriptNode, true);
 
     var machine = Machine();
-    var result = machine.visit(root);
+    var result = machine.visit((root as ScriptNode).compound);
 
-    var stack = machine.stackFrame.top;
-    expect(stack.scope.length, 4);
-    expect((stack.scope['a'] as NumberValue).value, 6);
-    expect((stack.scope['b'] as NumberValue).value, 8);
-    expect((stack.scope['c'] as BooleanValue).value, false);
-    expect((stack.scope['d'] as BooleanValue).value, true);
+    var scope = machine.globalScope;
+    expect(scope.length, 4);
+    expect((scope['a'] as NumberValue).value, 6);
+    expect((scope['b'] as NumberValue).value, 8);
+    expect((scope['c'] as BooleanValue).value, false);
+    expect((scope['d'] as BooleanValue).value, true);
   });
 
   test('test machine for var', () {
@@ -232,17 +251,17 @@ var b = 2 + a
 ''');
     var parser = Parser(lexer);
     var root = parser.parse();
-
-    expect(root is CompoundNode, true);
+    expect(parser.isError, false);
+    expect(root is ScriptNode, true);
 
     var machine = Machine();
     machine.setVariable('a', NumberValue(6));
-    var result = machine.visit(root);
+    var result = machine.visit((root as ScriptNode).compound);
 
-    var stack = machine.stackFrame.top;
-    expect(stack.scope.length, 2);
-    expect((stack.scope['a'] as NumberValue).value, 6);
-    expect((stack.scope['b'] as NumberValue).value, 8);
+    var scope = machine.globalScope;
+    expect(scope.length, 2);
+    expect((scope['a'] as NumberValue).value, 6);
+    expect((scope['b'] as NumberValue).value, 8);
   });
 
   test('test machine for string binop', () {
@@ -255,10 +274,10 @@ var c = a + " " + b
     var root = parser.parse();
 
     expect(parser.isError, false);
-    expect(root is CompoundNode, true);
+    expect(root is ScriptNode, true);
 
     var machine = Machine();
-    var result = machine.visit(root);
+    var result = machine.visit((root as ScriptNode).compound);
     expect(result is StringValue, true);
     expect((result as StringValue).value, 'test string');
   });
@@ -272,7 +291,7 @@ var a = false
     var parser = Parser(lexer);
     var root = parser.parse();
 
-    expect(root is CompoundNode, true);
+    expect(root is ScriptNode, true);
 
     var machine = Machine();
     expect(() => machine.visit(root), throwsA(isA<AlreadyDefinedException>()));
@@ -287,7 +306,7 @@ var b = 2 + a
     var root = parser.parse();
 
     expect(parser.isError, false);
-    expect(root is CompoundNode, true);
+    expect(root is ScriptNode, true);
 
     var machine = Machine();
     expect(() => machine.visit(root), throwsA(isA<InvalidCastException>()));
@@ -393,6 +412,25 @@ if (a < 5) {
     expect(value is NumberValue, true);
     expect((value as NumberValue).value, 20);
   });
+
+  test('test scripter #7', () {
+    var scripter = FlutterScripter();
+    scripter.enableDebugMode();
+
+    scripter.setExternalProcedure('foo', (args) => print(args[0]), 1);
+    scripter.setExternalFunction('bar', (args) => args[0], 1);
+
+    var result = scripter.run('''
+var a = 10
+var b = 0
+foo(a)
+b = bar(a)
+''');
+
+    var value = scripter.getValue('b');
+    expect(value is NumberValue, true);
+    expect((value as NumberValue).value, 10);
+  });
 }
 
 void test_symbol() {
@@ -426,6 +464,33 @@ c = true
     var analyzer = SemanticAnalyzer();
     expect(() => analyzer.visit(root), throwsA(isA<UndefinedException>()));
   });
+
+  test('test symbol table #2', () {
+    var lexer = Lexer(text: '''
+var a = 10
+var b = 0
+foo(a)
+''');
+    var parser = Parser(lexer);
+    var root = parser.parse();
+
+    // TODO: set
+
+    var analyzer = SemanticAnalyzer();
+    expect(() => analyzer.visit(root), throwsA(isA<UndefinedException>()));
+  });
+}
+
+void test_stack() {
+  test('test stack #1', () {
+    var scripter = FlutterScripter();
+    scripter.enableDebugMode();
+    scripter.setVariable('a', NumberValue(10));
+
+    scripter.run('''
+var b = a * 10
+''');
+  });
 }
 
 void main() {
@@ -434,4 +499,5 @@ void main() {
   test_machine();
   test_scripter();
   test_symbol();
+  test_stack();
 }
